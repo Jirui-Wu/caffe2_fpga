@@ -108,9 +108,10 @@ C10_EXPORT void Kernel(
   fpga_times[2] = (event_times[4] + event_times[5] + event_times[6] / 1000000.0;
 #endif
   //CHANGE vectors back to arrays
+  //Need to fix here
   for (int i=0; i< ofmMat.size(); ++i)
   {
-      C[i] = ofmMatLoco[i];
+      C[i] = ofmMat[i];
   }
   //end of GEMM Kernel
 }
