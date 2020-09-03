@@ -58,7 +58,7 @@ typedef float i2c_t;
 #define _i2cH 48
 #define _i2cW 16
 #define _stride 2
-#define _pad 1
+//#define _pad 1
 
 #define _interMul 11
 #define _interAdd 8
