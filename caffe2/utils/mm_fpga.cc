@@ -1,4 +1,4 @@
-#include "caffe2/utils/mm_fpga.h"
+#include "caffe2/utils/mm_fpga.hpp"
 #include <fstream>
 #include <iostream>
 

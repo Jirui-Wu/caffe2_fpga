@@ -1,4 +1,4 @@
-#include "caffe2/fpga/AsyncProfiler.hpp"
+#include "caffe2/utils/AsyncProfiler.hpp"
 
 AsyncProfiler::AsyncProfiler() : totalExecTime(0.0) {}
 

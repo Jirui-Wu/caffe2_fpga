@@ -2,9 +2,9 @@
 #define UTILS_FLOAT_HPP
 
 #include <vector>
-#include "caffe2/fpga/xcl2.hpp"
+#include "caffe2/utils/xcl2.hpp"
 #include "math.h"
-#include "caffe2/fpga/mesh_processor.hpp"
+#include "caffe2/utils/mesh_processor.hpp"
 
 
 bool is_a_ge_zero_and_a_lt_b(int a, int b);
