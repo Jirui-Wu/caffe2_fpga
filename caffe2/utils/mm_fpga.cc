@@ -41,18 +41,18 @@ C10_EXPORT void Kernel(
 
 
   //A and B here are arrays, change them to vectors, CHECK HERE
-  std::vector<float, aligned_allocator<float> > weightsMatLoco{A, A + M*K};
-  std::vector<float, aligned_allocator<float> > ifmMatLoco{B, B + N*K};
-  std::vector<float, aligned_allocator<float> > ofmMatLoco;
+  std::vector<float, aligned_allocator<float> > weightsMat{A, A + M*K};
+  std::vector<float, aligned_allocator<float> > ifmMat{B, B + N*K};
+  std::vector<float, aligned_allocator<float> > ofmMat;
     for (int i=0; i< M*N; ++i)
     {
-        ofmMatLoco.push_back(0);
+        ofmMat.push_back(0);
     }
 
   std::cout << "Creating buffers..." << std::endl;
-  OCL_CHECK(err, cl::Buffer weightsMatLoco(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, sizeof(float)*weightsMatLoco.size(), weightsMatLoco.data(), &err));
-  OCL_CHECK(err, cl::Buffer ifmMatLoco(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, sizeof(float)*ifmMatLoco.size(), ifmMatLoco.data(), &err));
-  OCL_CHECK(err, cl::Buffer ofmMatLoco(context, CL_MEM_USE_HOST_PTR, sizeof(float)*ofmMatLoco.size(), ofmMatLoco.data(), &err));
+  OCL_CHECK(err, cl::Buffer weightsMatLoco(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, sizeof(float)*weightsMat.size(), weightsMat.data(), &err));
+  OCL_CHECK(err, cl::Buffer ifmMatLoco(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, sizeof(float)*ifmMat.size(), ifmMat.data(), &err));
+  OCL_CHECK(err, cl::Buffer ofmMatLoco(context, CL_MEM_USE_HOST_PTR, sizeof(float)*ofmMat.size(), ofmMat.data(), &err));
 
   q.finish();
 
@@ -106,7 +106,7 @@ C10_EXPORT void Kernel(
   fpga_times[0] = (event_times[0] + event_times[1] + event_times[2]) / 1000000.0;
   fpga_times[1] = (event_times[3]) / 1000000.0;
   fpga_times[2] = (event_times[4] + event_times[5] + event_times[6] / 1000000.0;
-
+#endif
   //CHANGE vectors back to arrays
   for (int i=0; i< ofmMatLoco.size(); ++i)
   {

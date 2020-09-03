@@ -5,7 +5,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <cmath>
+#include <math.h>
 #include <assert.h>
 //#include <ap_int.h>
 /* --- precisions --- */
