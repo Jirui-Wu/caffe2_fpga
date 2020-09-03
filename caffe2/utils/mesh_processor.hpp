@@ -7,7 +7,7 @@
 #include <sstream>
 #include <math.h>
 #include <assert.h>
-#include <ap_int.h>
+//#include <ap_int.h>
 /* --- precisions --- */
 // typedef int ifm_t;
 // typedef int w_t;
