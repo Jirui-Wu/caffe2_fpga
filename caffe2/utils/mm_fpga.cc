@@ -108,7 +108,7 @@ C10_EXPORT void Kernel(
   fpga_times[2] = (event_times[4] + event_times[5] + event_times[6] / 1000000.0;
 #endif
   //CHANGE vectors back to arrays
-  for (int i=0; i< ofmMatLoco.size(); ++i)
+  for (int i=0; i< ofmMat.size(); ++i)
   {
       C[i] = ofmMatLoco[i];
   }
