@@ -7,7 +7,7 @@
 #include <sstream>
 #include <math.h>
 #include <assert.h>
-//#include <ap_int.h>
+#include <ap_int.h>
 /* --- precisions --- */
 // typedef int ifm_t;
 // typedef int w_t;
@@ -16,10 +16,10 @@
 // #define _batchSize 128
 // #define _D 64
 
-// typedef float ifm_t;
-// typedef float w_t;
-// typedef float ofm_t;
-// typedef float i2c_t;
+typedef float ifm_t;
+typedef float w_t;
+typedef float ofm_t;
+typedef float i2c_t;
 
 // #define _X 4
 // #define _Y 2
