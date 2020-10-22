@@ -188,7 +188,7 @@ TORCH_API std::unique_ptr<CodeGen> CreateCodeGen(
 
 class TORCH_API GenericIntrinsicsExpander : public IRMutator {
  protected:
-  const Expr* mutate(const Intrinsics* v) override;
+  const Expr* mutate(const Intrinsics* v);
 };
 
 } // namespace tensorexpr

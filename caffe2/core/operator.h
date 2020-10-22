@@ -205,11 +205,7 @@ class CAFFE2_API OperatorBase : public Observable<OperatorBase> {
     CAFFE_ENFORCE(
         ival.isTensor(),
         "Input(int, DeviceType) is only available for IValues that store Tensors");
-    auto t = ival.toTensor();
-    if (!t.is_contiguous()){
-      t = t.contiguous();
-    }
-    Tensor tensor = caffe2::Tensor(std::move(t));
+    Tensor tensor = caffe2::Tensor(ival.toTensor());
     CAFFE_ENFORCE_EQ(tensor.GetDeviceType(), type);
     input_tensors_[idx] = std::move(tensor);
     return input_tensors_[idx];
@@ -1408,6 +1404,44 @@ C10_DECLARE_REGISTRY(
 // Macros for cudnn since we use it often
 #define REGISTER_CUDNN_OPERATOR(name, ...) \
   REGISTER_CUDA_OPERATOR_WITH_ENGINE(name, CUDNN, __VA_ARGS__)
+/*
+//added by jirui
+//Macros for FPGA operator
+C10_DECLARE_REGISTRY(
+    FPGAOperatorRegistry,
+    OperatorBase,
+    const OperatorDef&,
+    Workspace*);
+#define REGISTER_FPGA_OPERATOR_CREATOR(key, ...) \
+  C10_REGISTER_CREATOR(FPGAOperatorRegistry, key, __VA_ARGS__)
+#define REGISTER_FPGA_OPERATOR(name, ...)                           \
+  C10_IMPORT void CAFFE2_PLEASE_ADD_OPERATOR_SCHEMA_FOR_##name();  \
+  static void CAFFE2_UNUSED CAFFE_ANONYMOUS_VARIABLE_CPU##name() { \
+    CAFFE2_PLEASE_ADD_OPERATOR_SCHEMA_FOR_##name();                \
+  }                                                                \
+  C10_REGISTER_CLASS(FPGAOperatorRegistry, name, __VA_ARGS__)
+#define REGISTER_FPGA_OPERATOR_STR(str_name, ...) \
+  C10_REGISTER_TYPED_CLASS(FPGAOperatorRegistry, str_name, __VA_ARGS__)
+
+#define REGISTER_FPGA_OPERATOR_WITH_ENGINE(name, engine, ...) \
+  C10_REGISTER_CLASS(FPGAOperatorRegistry, name##_ENGINE_##engine, __VA_ARGS__)
+
+// Use these macros to register gradient operators.  They can be automatically
+// excluded from builds that don't need them (e.g., mobile).
+#ifdef CAFFE2_NO_GRADIENT_OPS
+#define REGISTER_FPGA_GRADIENT_OPERATOR(...)
+#else
+#define REGISTER_FPGA_GRADIENT_OPERATOR(...) \
+  C10_MACRO_EXPAND(REGISTER_FPGA_OPERATOR(__VA_ARGS__))
+#endif
+
+#ifdef CAFFE2_NO_GRADIENT_OPS
+#define REGISTER_FPGA_GRADIENT_OPERATOR_WITH_ENGINE(...)
+#else
+#define REGISTER_FPGA_GRADIENT_OPERATOR_WITH_ENGINE(...) \
+  C10_MACRO_EXPAND(REGISTER_FPGA_OPERATOR_WITH_ENGINE(__VA_ARGS__))
+#endif
+*/
 
 // Macros for HIP operators
 C10_DECLARE_REGISTRY(

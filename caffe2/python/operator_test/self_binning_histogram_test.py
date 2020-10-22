@@ -4,7 +4,7 @@ import caffe2.python.hypothesis_test_util as hu
 import hypothesis.strategies as st
 import numpy as np
 from caffe2.python import core, workspace
-from hypothesis import given, settings
+from hypothesis import given
 
 
 class TestSelfBinningHistogramBase(object):
@@ -68,7 +68,6 @@ class TestSelfBinningHistogramBase(object):
         workspace.RunNetOnce(net)
 
     @given(rows=st.integers(1, 1000), cols=st.integers(1, 1000), **hu.gcs_cpu_only)
-    @settings(deadline=10000)
     def test_histogram_device_consistency(self, rows, cols, gc, dc):
         X = np.random.rand(rows, cols)
         op = core.CreateOperator(

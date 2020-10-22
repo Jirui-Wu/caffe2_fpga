@@ -21,7 +21,6 @@ configure_file(
 # and headers you add
 set(C10_CUDA_SRCS
     CUDAStream.cpp
-    CUDAFunctions.cpp
     CUDACachingAllocator.cpp
     impl/CUDAGuardImpl.cpp
     impl/CUDATest.cpp

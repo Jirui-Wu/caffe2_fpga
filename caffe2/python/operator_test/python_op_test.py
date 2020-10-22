@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 from caffe2.python import core, workspace
 from caffe2.python.core import CreatePythonOperator
 import caffe2.python.hypothesis_test_util as hu
-from hypothesis import given, settings
+from hypothesis import given
 import hypothesis.strategies as st
 import numpy as np
 import unittest
@@ -14,7 +14,6 @@ class PythonOpTest(hu.HypothesisTestCase):
     @given(x=hu.tensor(),
            n=st.integers(min_value=1, max_value=20),
            w=st.integers(min_value=1, max_value=20))
-    @settings(deadline=1000)
     def test_simple_python_op(self, x, n, w):
         def g(input_, output):
             output[...] = input_

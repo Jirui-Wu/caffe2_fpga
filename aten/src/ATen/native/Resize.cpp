@@ -95,5 +95,9 @@ Tensor& resize_(
   return self;
 }
 
+TORCH_LIBRARY_IMPL(aten, CatchAll, m) {
+  m.impl_UNBOXED("resize_as_", resize_as_);
+}
+
 } // namespace native
 } // namespace at

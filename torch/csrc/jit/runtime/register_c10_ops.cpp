@@ -122,7 +122,14 @@ Operator createOperatorFromC10_withTracingHandledHere(
       jit::tracer::setTracingState(nullptr);
     }
 
+#ifdef USE_STATIC_DISPATCH
+    {
+      at::AutoNonVariableTypeMode non_var_type_mode(true);
+      op.callBoxed(stack);
+    }
+#else
     op.callBoxed(stack);
+#endif // USE_STATIC_DISPATCH
 
     if (tracer_state) {
       jit::tracer::setTracingState(std::move(tracer_state));

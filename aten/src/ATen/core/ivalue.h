@@ -95,7 +95,6 @@ struct OptionalArray {
   _(Uninitialized)           \
   _(Capsule)                 \
   _(RRef)                    \
-  _(Quantizer)               \
   _(Generator)               \
   _(Enum)                    \
 
@@ -349,12 +348,6 @@ struct CAFFE2_API IValue final {
   c10::intrusive_ptr<c10::RRefInterface> toRRef() &&;
   c10::intrusive_ptr<c10::RRefInterface> toRRef() const &;
 
-  // Quantizer
-  IValue(c10::intrusive_ptr<at::Quantizer> v);
-  bool isQuantizer() const { return Tag::Quantizer == tag; }
-  c10::intrusive_ptr<at::Quantizer> toQuantizer() &&;
-  c10::intrusive_ptr<at::Quantizer> toQuantizer() const &;
-
   // Int
   IValue(int64_t i)
   : tag(Tag::Int), is_intrusive_ptr(false) {
@@ -404,7 +397,6 @@ struct CAFFE2_API IValue final {
   c10::intrusive_ptr<ivalue::ConstantString> toString() &&;
   c10::intrusive_ptr<ivalue::ConstantString> toString() const &;
   const std::string& toStringRef() const;
-  c10::optional<std::reference_wrapper<const std::string>> toOptionalStringRef() const;
 
   // DoubleList
   bool isDoubleList() const;

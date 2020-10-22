@@ -175,11 +175,7 @@ Reducer::Reducer(
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 // If DDP communication hook is not registered, the reducer reduces the buckets
 // by just calling allreduce. If registered, it calls the hook and uses future
-// work handle. If registered, reducer also skips dividing grads by world size.
-// The reason for this is that the communication hook is expected to completely
-// override how we perform communication and the user should have complete
-// control over how the grads are handled.
-//
+// work handle.
 // DDP communication hook is an enhancement that provides a hook which can be
 // used to override how DDP communicates gradients across ranks, this can be
 // used for algorithms like Gradient Compression/GossipGrad. This hook can be
@@ -313,7 +309,7 @@ void Reducer::mark_variable_ready_dense(VariableIndex index) {
   auto& variable = replica.variables[bucket_index.intra_bucket_index];
   const auto offset = replica.offsets[bucket_index.intra_bucket_index];
   const auto length = replica.lengths[bucket_index.intra_bucket_index];
-  auto& bucket_view = replica.bucket_views_in[bucket_index.intra_bucket_index];
+  auto& bucket_view = replica.bucket_views[bucket_index.intra_bucket_index];
 
   // Copy contents of gradient tensor to bucket tensor.
   // If the gradient is not set, we assume it wasn't computed
@@ -355,21 +351,16 @@ void Reducer::mark_variable_ready_dense(VariableIndex index) {
             ", strides() = ",
             bucket_view.strides());
       }
-      // See Note [DDP Communication Hook]
-      if (comm_hook_ == nullptr) {
-        // imitates wrapped_scalar_tensor in ATen/native/BinaryOps.cpp
-        auto wrapped =
-            c10::scalar_to_tensor(double(1.) / process_group_->getSize());
-        wrapped.unsafeGetTensorImpl()->set_wrapped_number(true);
-        // Divides while copying into the bucket view.
-        at::native::mul_out(bucket_view, grad, wrapped);
-      } else {
-        bucket_view.copy_(grad);
-      }
+      // imitates wrapped_scalar_tensor in ATen/native/BinaryOps.cpp
+      auto wrapped =
+          c10::scalar_to_tensor(double(1.) / process_group_->getSize());
+      wrapped.unsafeGetTensorImpl()->set_wrapped_number(true);
+      // Divides while copying into the bucket view.
+      at::native::mul_out(bucket_view, grad, wrapped);
     } else {
       bucket_view.zero_();
     }
-    // The grad is not modified and doesn't need to be written back.
+    // The grad is not modified and dosesn't need to be written back.
     return false;
   });
 }
@@ -394,10 +385,7 @@ void Reducer::mark_variable_ready_sparse(VariableIndex index) {
     // struct are empty, and there is no pre-existing accumulation tensor.
     // Directly assign the sparse tensor to the `contents` field.
     replica.contents = grad;
-    // See Note [DDP Communication Hook]
-    if (comm_hook_ == nullptr) {
-      replica.contents.div_(process_group_->getSize());
-    }
+    replica.contents.div_(process_group_->getSize());
     // The grad is modified in place and needs to be written back.
     return true;
   });
@@ -720,10 +708,9 @@ void Reducer::initialize_buckets(
         // unexpected layout, performance will degrade due to poor memory access
         // patterns when copy_ing grad data in and out of its bucket view.
         // However, numerics remain correct, because the bucket view is the same
-        // on either end of the raw allreduce.  bucket_view_in.copy(grad)
-        // tranposes
+        // on either end of the raw allreduce.  bucket_view.copy(grad) tranposes
         // (+ densifies) to the bucket view's layout, the data is allreduced,
-        // then grad.copy_(bucket_view_out) transposes it back to grad's layout.
+        // then grad.copy_(bucket_view) transposes it back to grad's layout.
         //
         // The only way the numerics can go haywire is if the bucket views
         // themselves have different layouts across processes (or replicas).
@@ -736,7 +723,7 @@ void Reducer::initialize_buckets(
         // metadata.  Checking just once won't catch if someone messes with
         // param layouts over time, but not messing with params after DDP
         // construction is already a documented constraint.
-        initialize_bucket_views(replica, replica.contents, true);
+        initialize_bucketviews(replica, replica.contents);
       }
 
       // Add bucket replica to enclosing bucket.
@@ -762,10 +749,9 @@ void Reducer::initialize_buckets(
 }
 
 // (see Note:  "Gradient Layout Contract" in initialize_buckets).
-void Reducer::initialize_bucket_views(
+void Reducer::initialize_bucketviews(
     Reducer::BucketReplica& replica,
-    at::Tensor& contents,
-    bool populate_bucket_views_in) {
+    at::Tensor& contents) {
   for (size_t i = 0; i < replica.variables.size(); i++) {
     const auto& v = replica.variables[i];
     const auto offset = replica.offsets[i];
@@ -774,24 +760,14 @@ void Reducer::initialize_bucket_views(
       // If the param's memory is dense, match its layout, anticipating
       // the autograd engine (AccumulateGrad) will also create gradients
       // matching its layout.
-      replica.bucket_views_out.push_back(
+      replica.bucket_views.push_back(
           contents.as_strided(v.sizes(), v.strides(), offset));
-      // If calling from `initialize_buckets`, push_back to views_in too.
-      if (populate_bucket_views_in) {
-        replica.bucket_views_in.push_back(
-            contents.as_strided(v.sizes(), v.strides(), offset));
-      }
     } else {
       // Fall back to a C-style contiguous view, again anticipating
       // AccumulateGrad will do the same when stashing grads for non-dense
       // params.
-      replica.bucket_views_out.push_back(
+      replica.bucket_views.push_back(
           contents.narrow(0, offset, length).view(v.sizes()));
-      // If calling from `initialize_buckets`, push_back to views_in too.
-      if (populate_bucket_views_in) {
-        replica.bucket_views_in.push_back(
-            contents.as_strided(v.sizes(), v.strides(), offset));
-      }
     }
   }
 }
@@ -939,7 +915,7 @@ void Reducer::finalize_bucket_dense(Bucket& bucket) {
         }
       }
 
-      const auto& bucket_view = replica.bucket_views_out[intra_bucket_index];
+      const auto& bucket_view = replica.bucket_views[intra_bucket_index];
       runGradCallbackForVariable(variable, [&](auto& grad) {
         // If a parameter is globally unused, we keep its grad untouched.
         if (!global_unused) {
@@ -992,16 +968,11 @@ void Reducer::finalize_backward() {
       auto future_result =
           comm_hook_->processFuture(bucket.future_work->value());
 
+      // Reinitialize bucket_views with the future_result by following
+      // the same logic in `inititalize_buckets`.
       for (size_t i = 0; i < future_result.size(); i++) {
-        auto& replica = bucket.replicas[i];
-        if (bucket.expect_sparse_gradient) {
-          replica.contents.copy_(future_result[i]);
-        } else {
-          // Reinitialize only `bucket_views_out` with the future_result by
-          // following the same logic in `initialize_buckets`.
-          replica.bucket_views_out.clear();
-          initialize_bucket_views(replica, future_result[i], false);
-        }
+        bucket.replicas[i].bucket_views.clear();
+        initialize_bucketviews(bucket.replicas[i], future_result[i]);
       }
     }
     if (!bucket.expect_sparse_gradient) {
@@ -1161,11 +1132,6 @@ std::vector<std::vector<size_t>> Reducer::rebuildBuckets() {
 void Reducer::register_comm_hook(std::unique_ptr<CommHookInterface> iface) {
   TORCH_CHECK(
       comm_hook_ == nullptr, "register_comm_hook can only be called once.");
-  // TODO(@sinannasir): Single-process multiple-device mode support for DDP
-  // communication hook. Related to GH Issue #42542.
-  TORCH_CHECK(
-      replicas_.size() == 1,
-      "Communication hook does not support single-process multiple-device mode.");
 
   comm_hook_ = std::move(iface);
 }

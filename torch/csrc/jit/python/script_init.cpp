@@ -354,8 +354,6 @@ static StrongFunctionPtr script_compile_overloaded_function(
   auto cu = get_python_cu();
   auto defined_functions = cu->define(
       QualifiedName(name.prefix()),
-      /*properties=*/{},
-      /*propResolvers=*/{},
       {new_def},
       {pythonResolver(std::move(rcb))},
       nullptr,
@@ -382,8 +380,6 @@ static StrongFunctionPtr script_compile_function(
   auto cu = get_python_cu();
   auto defined_functions = cu->define(
       QualifiedName(name.prefix()),
-      /*properties=*/{},
-      /*propResolvers=*/{},
       {def},
       {pythonResolver(std::move(rcb))},
       nullptr,
@@ -902,24 +898,19 @@ void initJitScriptBindings(PyObject* module) {
           "_save_for_mobile",
           [](Module& m,
              const std::string& filename,
-             const ExtraFilesMap& _extra_files = ExtraFilesMap(),
-             bool _save_mobile_debug_info = false) {
-            m._save_for_mobile(filename, _extra_files, _save_mobile_debug_info);
+             const ExtraFilesMap& _extra_files = ExtraFilesMap()) {
+            m._save_for_mobile(filename, _extra_files);
           },
           py::arg("filename"),
-          py::arg("_extra_files") = ExtraFilesMap(),
-          py::arg("_save_mobile_debug_info") = false)
+          py::arg("_extra_files") = ExtraFilesMap())
       .def(
           "_save_to_buffer_for_mobile",
-          [](Module& m,
-             const ExtraFilesMap& _extra_files = ExtraFilesMap(),
-             bool _save_mobile_debug_info = false) {
+          [](Module& m, const ExtraFilesMap& _extra_files = ExtraFilesMap()) {
             std::ostringstream buf;
-            m._save_for_mobile(buf, _extra_files, _save_mobile_debug_info);
+            m._save_for_mobile(buf, _extra_files);
             return py::bytes(buf.str());
           },
-          py::arg("_extra_files") = ExtraFilesMap(),
-          py::arg("_save_mobile_debug_info") = false)
+          py::arg("_extra_files") = ExtraFilesMap())
       .def("_set_optimized", &Module::set_optimized)
       .def(
           "dump",
@@ -1302,10 +1293,8 @@ void initJitScriptBindings(PyObject* module) {
         const auto classname = c10::QualifiedName(qualifiedName);
         auto classType = ClassType::create(classname, cu);
         cu->register_type(classType);
-        std::vector<ResolverPtr> methodRcbs, propRcbs;
+        std::vector<ResolverPtr> rcbs;
         std::vector<Def> methodDefs;
-        std::vector<Property> props;
-
         for (const auto& def : classDef.body()) {
           if (def.kind() != TK_DEF) {
             throw ErrorReport(def.range())
@@ -1314,22 +1303,11 @@ void initJitScriptBindings(PyObject* module) {
                    "something else!";
           }
           methodDefs.emplace_back(Def(def));
-          methodRcbs.push_back(
+          rcbs.push_back(
               pythonResolver(rcb, classDef.name().name(), classType));
         }
-
-        // Gather definitions for property getters and setters as well as
-        // corresponding resolution callbacks.
-        if (classDef.properties().present()) {
-          for (const auto& prop : classDef.properties().get()) {
-            props.emplace_back(prop);
-            propRcbs.push_back(
-                pythonResolver(rcb, classDef.name().name(), classType));
-          }
-        }
-
         const auto self = SimpleSelf(classType);
-        cu->define(classname, props, propRcbs, methodDefs, methodRcbs, &self);
+        cu->define(classname, methodDefs, rcbs, &self);
       });
   m.def(
       "_jit_script_interface_compile",
@@ -1585,13 +1563,7 @@ void initJitScriptBindings(PyObject* module) {
             const auto& prefix = selfType->name().value();
             const auto self = ModuleSelf(std::move(concreteType));
             auto cu = selfType->compilation_unit();
-            cu->define(
-                prefix,
-                /*properties=*/{},
-                /*propResolvers=*/{},
-                defs,
-                resolvers,
-                &self);
+            cu->define(prefix, defs, resolvers, &self);
             // Stitch in default arguments for each Def if provided
             auto defaults_it = defaults.begin();
             auto defs_it = defs.begin();

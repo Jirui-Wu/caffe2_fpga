@@ -23,11 +23,11 @@ void GradMode::set_enabled(bool enabled) {
 #else
 
 bool GradMode::is_enabled() {
-  return false;
+  throw std::runtime_error("GradMode is not supported on mobile");
 }
 
 void GradMode::set_enabled(bool enabled) {
-  throw std::runtime_error("GradMode::set_enabled is not supported on mobile");
+  throw std::runtime_error("GradMode is not supported on mobile");
 }
 
 #endif

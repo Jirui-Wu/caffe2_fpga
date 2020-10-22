@@ -821,6 +821,8 @@ void checkScopeCallbacks() {
 }
 
 void testRecordFunction() {
+  // enable observers
+  c10::impl::IncludeDispatchKeyGuard observer_guard(c10::DispatchKey::Profiler);
   // disabling the inlining of method calls
   GraphOptimizerEnabledGuard opt_guard(false);
 
@@ -1014,6 +1016,8 @@ void testRecordFunction() {
   ids.clear();
 
   auto th = std::thread([&ids]() {
+    c10::impl::IncludeDispatchKeyGuard observer_guard(
+        c10::DispatchKey::Profiler);
     addThreadLocalCallback(RecordFunctionCallback(
         [&ids](const RecordFunction& fn) { ids.push_back(2); },
         [](const RecordFunction&) {}));
@@ -1124,6 +1128,9 @@ void checkDebugInfo(c10::DebugInfoKind kind, int model_id) {
 }
 
 void testThreadLocalDebugInfo() {
+  // enable observers
+  c10::impl::IncludeDispatchKeyGuard observer_guard(c10::DispatchKey::Profiler);
+
   TORCH_CHECK(
       c10::ThreadLocalDebugInfo::get(c10::DebugInfoKind::TEST_INFO) == nullptr);
   auto debug_info = std::make_shared<TestThreadLocalDebugInfo>();
@@ -1322,17 +1329,14 @@ graph(%a):
   }
 }
 
-static void checkShape(TypePtr typ, std::vector<int64_t> expected) {
-  auto ptp = typ->expect<TensorType>();
-  ASSERT_EQ(ptp->sizes().concrete_sizes().value(), expected);
-}
-
 static void checkShape(
     Node* n,
     std::vector<int64_t> expected,
     bool prev = true) {
   auto profile = (prev) ? n->inputs().at(0)->node() : n;
-  checkShape(profile->output()->type(), expected);
+  auto tp = profile->output()->type();
+  auto ptp = tp->expect<TensorType>();
+  ASSERT_EQ(ptp->sizes().concrete_sizes().value(), expected);
 }
 
 void count_(
@@ -1595,7 +1599,6 @@ void testInsertAndEliminateRedundantGuards() {
   InterpreterState is{cd};
   is.run(stack);
   auto copy = pr->profiled_graph_->copy();
-  ProfilingRecord::removeProfileCounter(copy->block());
   InsertGuards(copy);
   auto nodes = copy->block()->nodes();
   auto guard = std::find_if(nodes.begin(), nodes.end(), [](Node* n) {
@@ -1646,7 +1649,6 @@ void testInsertBailOuts() {
   InterpreterState is{cd};
   is.run(stack);
   auto copy = pr->profiled_graph_->copy();
-  ProfilingRecord::removeProfileCounter(copy->block());
   InsertGuards(copy);
   EliminateRedundantGuards(copy);
   auto nodes = copy->block()->nodes();
@@ -1690,14 +1692,6 @@ void testProfiler() {
   InterpreterState is{cd};
   is.run(stack);
 
-  // profiled types are stored as attributes and show up in the dump, e.g.
-  // Tensor = prim::profile[profiled_type=Double(4:256, 256:1, requires_grad=0,
-  // device=cpu)
-  testing::FileCheck()
-      .check("Tensor = prim::profile[profiled_type")
-      ->check_same("256")
-      ->run(*pr->profiled_graph_);
-
   auto begin = pr->profiled_graph_->block()->nodes().begin();
   auto end = pr->profiled_graph_->block()->nodes().end();
   auto mm =
@@ -1705,14 +1699,14 @@ void testProfiler() {
   ASSERT_NE(mm, end);
   std::vector<int64_t> mm_expected{4, 2048};
   std::vector<int64_t> eltwise{4, 512};
-  checkShape(mm->inputs().at(0)->node()->ty(attr::profiled_type), mm_expected);
+  checkShape(*mm, mm_expected);
   auto mul_n =
       std::find_if(begin, end, [](Node* n) { return n->kind() == aten::mul; });
   ASSERT_NE(mul_n, end);
-  checkShape(mul_n->inputs().at(0)->node()->ty(attr::profiled_type), eltwise);
+  checkShape(*mul_n, eltwise);
   auto tanh_n =
       std::find_if(begin, end, [](Node* n) { return n->kind() == aten::tanh; });
-  checkShape(tanh_n->inputs().at(0)->node()->ty(attr::profiled_type), eltwise);
+  checkShape(*tanh_n, eltwise);
 }
 
 void testCallStack() {

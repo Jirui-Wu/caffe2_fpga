@@ -256,7 +256,7 @@ Tensor data_parallel(
     devices = std::vector<Device>();
     devices->reserve(device_count);
     for (size_t index = 0; index < device_count; ++index) {
-      devices->emplace_back(kCUDA, static_cast<torch::DeviceIndex>(index));
+      devices->emplace_back(kCUDA, index);
     }
   }
   if (!output_device) {

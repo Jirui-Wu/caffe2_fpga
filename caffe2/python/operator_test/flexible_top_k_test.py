@@ -8,7 +8,7 @@ import caffe2.python.hypothesis_test_util as hu
 import caffe2.python.serialized_test.serialized_test_util as serial
 
 from collections import OrderedDict
-from hypothesis import given, settings
+from hypothesis import given
 import numpy as np
 
 
@@ -39,8 +39,7 @@ class TestFlexibleTopK(serial.SerializedTestCase):
 
         return (values_ref, indices_ref)
 
-    @given(X=hu.tensor(min_dim=2), **hu.gcs_cpu_only)
-    @settings(deadline=1000)
+    @serial.given(X=hu.tensor(min_dim=2), **hu.gcs_cpu_only)
     def test_flexible_top_k(self, X, gc, dc):
         X = X.astype(dtype=np.float32)
         k_shape = (int(X.size / X.shape[-1]), )
@@ -57,7 +56,6 @@ class TestFlexibleTopK(serial.SerializedTestCase):
         self.assertReferenceChecks(gc, op, [X, k], bind_ref)
 
     @given(X=hu.tensor(min_dim=2), **hu.gcs_cpu_only)
-    @settings(deadline=10000)
     def test_flexible_top_k_grad(self, X, gc, dc):
         X = X.astype(np.float32)
         k_shape = (int(X.size / X.shape[-1]), )

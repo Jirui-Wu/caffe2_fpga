@@ -30,8 +30,9 @@ class Conv_fpga_Op final : public ConvPoolOpBase<Context> {
     }
   }
   ~Conv_fpga_Op() {}
-
+  //calls fpga kernel, details see impl file
   bool RunOnDeviceWithOrderNCHW() override;
+  //not changed
   bool RunOnDeviceWithOrderNHWC() override;
 
  private:

@@ -25,11 +25,10 @@ def _glu_old_input(draw):
 
 
 class TestGlu(serial.SerializedTestCase):
-    @given(
+    @serial.given(
         X_axis=_glu_old_input(),
         **hu.gcs
     )
-    @settings(deadline=10000)
     def test_glu_old(self, X_axis, gc, dc):
         X, axis = X_axis
 

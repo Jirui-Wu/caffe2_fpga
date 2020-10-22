@@ -12,7 +12,7 @@ from caffe2.quantization.server.dnnlowp_test_utils import (
     generate_convnd_inputs,
     run_conv_or_fc,
 )
-from hypothesis import given, settings
+from hypothesis import given
 
 
 dyndep.InitOpsLibrary("//caffe2/caffe2/quantization/server:dnnlowp_ops")
@@ -34,7 +34,6 @@ class DNNLowPOpConvDepthWiseTest(hu.HypothesisTestCase):
         relu=st.booleans(),
         **hu.gcs_cpu_only
     )
-    @settings(max_examples=10, deadline=None)
     def test_dnnlowp_depthwise_3x3_conv(
         self,
         stride,
@@ -189,7 +188,6 @@ class DNNLowPOpConvDepthWiseTest(hu.HypothesisTestCase):
         quantize_groupwise=st.just(True),
         **hu.gcs_cpu_only
     )
-    @settings(max_examples=10, deadline=None)
     def test_dnnlowp_depthwise_3x3x3_conv(
         self,
         stride_0,

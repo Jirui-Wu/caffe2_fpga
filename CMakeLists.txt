@@ -180,7 +180,7 @@ cmake_dependent_option(
     "USE_CUDA" OFF)
 option(USE_NUMPY "Use NumPy" ON)
 option(USE_OBSERVERS "Use observers module." OFF)
-option(USE_OPENCL "Use OpenCL" OFF)
+option(USE_OPENCL "Use OpenCL" ON)
 option(USE_OPENCV "Use OpenCV" OFF)
 option(USE_OPENMP "Use OpenMP for parallel code" ON)
 option(USE_PROF "Use profiling" OFF)
@@ -644,16 +644,30 @@ include_directories(BEFORE ${PROJECT_SOURCE_DIR}/aten/src/)
 include_directories(BEFORE ${PROJECT_BINARY_DIR}/aten/src/)
 #added by jirui
 include_directories(/opt/xilinx/xrt/include)
-include_directories(/tools/Xilinx/Vivado/2020.1/include/)
+include_directories(/usr/lib64/)
+# set(CMAKE_MODULE_PATH lib/cmake)
+# find_package(OpenCL REQUIRED)
+# INCLUDE_DIRECTORIES(${OpenCL_INCLUDE_DIRS})
+# LINK_DIRECTORIES(${OpenCL_LIBRARY})
+
+# message(STATUS "OpenCL found: ${OPENCL_FOUND}")
+# message(STATUS "OpenCL includes: ${OPENCL_INCLUDE_DIRS}")
+# message(STATUS "OpenCL CXX includes: ${OPENCL_HAS_CPP_BINDINGS}")
+# message(STATUS "OpenCL libraries: ${OPENCL_LIBRARIES}")
+
+# include_directories(/tools/fpgaMM/common/includes/opencl/)
+# /tools/fpgaMM/common/includes/opencl/opencl.mk
+# include_directories(/tools/fpgaMM/common/includes/xcl2/)
+# include /tools/fpgaMM/common/includes/xcl2/xcl2.mk
+# include_directories(/usr/src/xrt-2.3.1301/driver/)
+# include_directories(/tools/Xilinx/Vivado/2020.1/include/)
+
 
 
 # ---[ Main build
 add_subdirectory(c10)
 add_subdirectory(caffe2)
-#added by jirui
-#include_directories(caffe2/fpga)
-#link_directories(caffe2/fpga)
-#target_link_libraries(caffe2/fpga)
+
 
 # --[ Documentation
 if(BUILD_DOCS)

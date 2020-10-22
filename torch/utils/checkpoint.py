@@ -1,10 +1,9 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 import torch
 import warnings
-from typing import Any, Iterable, List, Tuple
 
 
-def detach_variable(inputs: Tuple[Any, ...]) -> Tuple[torch.Tensor, ...]:
+def detach_variable(inputs):
     if isinstance(inputs, tuple):
         out = []
         for inp in inputs:
@@ -21,7 +20,7 @@ def detach_variable(inputs: Tuple[Any, ...]) -> Tuple[torch.Tensor, ...]:
             "Only tuple of tensors is supported. Got Unsupported input type: ", type(inputs).__name__)
 
 
-def check_backward_validity(inputs: Iterable[Any]) -> None:
+def check_backward_validity(inputs):
     if not any(inp.requires_grad for inp in inputs if isinstance(inp, torch.Tensor)):
         warnings.warn("None of the inputs have requires_grad=True. Gradients will be None")
 
@@ -33,7 +32,7 @@ def check_backward_validity(inputs: Iterable[Any]) -> None:
 # the device of all Tensor args.
 #
 # To consider:  maybe get_device_states and set_device_states should reside in torch/random.py?
-def get_device_states(*args) -> Tuple[List[int], List[torch.Tensor]]:
+def get_device_states(*args):
     # This will not error out if "arg" is a CPU tensor or a non-tensor type because
     # the conditionals short-circuit.
     fwd_gpu_devices = list(set(arg.get_device() for arg in args
@@ -47,7 +46,7 @@ def get_device_states(*args) -> Tuple[List[int], List[torch.Tensor]]:
     return fwd_gpu_devices, fwd_gpu_states
 
 
-def set_device_states(devices, states) -> None:
+def set_device_states(devices, states):
     for device, state in zip(devices, states):
         with torch.cuda.device(device):
             torch.cuda.set_rng_state(state)

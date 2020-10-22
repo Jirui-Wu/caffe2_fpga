@@ -110,10 +110,9 @@ hypothesis.settings.register_profile(
         derandomize=True,
         suppress_health_check=[hypothesis.HealthCheck.too_slow],
         database=None,
-        max_examples=50,
+        max_examples=100,
         min_satisfying_examples=1,
-        verbosity=hypothesis.Verbosity.verbose,
-        deadline=1000))
+        verbosity=hypothesis.Verbosity.verbose))
 hypothesis.settings.register_profile(
     "dev",
     settings(
@@ -160,14 +159,13 @@ def elements_of_type(dtype=np.float32, filter_=None):
     return elems if filter_ is None else elems.filter(filter_)
 
 
-def arrays(dims, dtype=np.float32, elements=None, unique=False):
+def arrays(dims, dtype=np.float32, elements=None):
     if elements is None:
         elements = elements_of_type(dtype)
     return hypothesis.extra.numpy.arrays(
         dtype,
         dims,
         elements=elements,
-        unique=unique,
     )
 
 
@@ -175,11 +173,10 @@ def tensor(min_dim=1,
            max_dim=4,
            dtype=np.float32,
            elements=None,
-           unique=False,
            **kwargs):
     dims_ = st.lists(dims(**kwargs), min_size=min_dim, max_size=max_dim)
     return dims_.flatmap(
-        lambda dims: arrays(dims, dtype, elements, unique=unique))
+        lambda dims: arrays(dims, dtype, elements))
 
 
 def tensor1d(min_len=1, max_len=64, dtype=np.float32, elements=None):

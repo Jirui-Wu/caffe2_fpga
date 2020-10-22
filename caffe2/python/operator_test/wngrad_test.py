@@ -78,7 +78,7 @@ def wngrad_sparse_test_helper(parent_test, inputs, seq_b, lr, epsilon,
 
 
 class TestWngrad(serial.SerializedTestCase):
-    @given(inputs=hu.tensors(n=2),
+    @serial.given(inputs=hu.tensors(n=2),
            seq_b=st.floats(min_value=0.01, max_value=0.99,
                         allow_nan=False, allow_infinity=False),
            lr=st.floats(min_value=0.01, max_value=0.99,
@@ -86,7 +86,6 @@ class TestWngrad(serial.SerializedTestCase):
            epsilon=st.floats(min_value=0.01, max_value=0.99,
                              allow_nan=False, allow_infinity=False),
            **hu.gcs_cpu_only)
-    @settings(deadline=10000)
     def test_wngrad_dense_base(self, inputs, seq_b, lr, epsilon, gc, dc):
         param, grad = inputs
         seq_b = np.array([seq_b, ], dtype=np.float32)
@@ -113,7 +112,6 @@ class TestWngrad(serial.SerializedTestCase):
            epsilon=st.floats(min_value=0.01, max_value=0.99,
                              allow_nan=False, allow_infinity=False),
            **hu.gcs_cpu_only)
-    @settings(deadline=1000)
     def test_wngrad_dense_output_effective_lr(self, inputs, seq_b,
                                               lr, epsilon, gc, dc):
         param, grad = inputs
@@ -142,7 +140,6 @@ class TestWngrad(serial.SerializedTestCase):
            epsilon=st.floats(min_value=0.01, max_value=0.99,
                              allow_nan=False, allow_infinity=False),
            **hu.gcs_cpu_only)
-    @settings(deadline=1000)
     def test_wngrad_dense_output_effective_lr_and_update(
             self, inputs, seq_b, lr, epsilon, gc, dc):
         param, grad = inputs
@@ -165,7 +162,7 @@ class TestWngrad(serial.SerializedTestCase):
 
     # Suppress filter_too_much health check.
     # Likely caused by `assume` call falling through too often.
-    @settings(suppress_health_check=[HealthCheck.filter_too_much], deadline=1000)
+    @settings(suppress_health_check=[HealthCheck.filter_too_much])
     @given(inputs=hu.tensors(n=2),
            seq_b=st.floats(min_value=0.01, max_value=0.99,
                         allow_nan=False, allow_infinity=False),
@@ -178,7 +175,7 @@ class TestWngrad(serial.SerializedTestCase):
         return wngrad_sparse_test_helper(self, inputs, seq_b, lr, epsilon,
             None, gc, dc)
 
-    @given(inputs=hu.tensors(n=1),
+    @serial.given(inputs=hu.tensors(n=1),
            lr=st.floats(min_value=0.01, max_value=0.99,
                         allow_nan=False, allow_infinity=False),
            seq_b=st.floats(min_value=0.01, max_value=0.99,
@@ -186,7 +183,6 @@ class TestWngrad(serial.SerializedTestCase):
            epsilon=st.floats(min_value=0.01, max_value=0.99,
                              allow_nan=False, allow_infinity=False),
            **hu.gcs_cpu_only)
-    @settings(deadline=1000)
     def test_sparse_wngrad_empty(self, inputs, seq_b, lr, epsilon, gc, dc):
         param = inputs[0]
         seq_b = np.array([seq_b, ], dtype=np.float32)

@@ -13,7 +13,6 @@ from . import matmul         # noqa: F401
 # from . import pooling        # noqa: F401
 # from . import reduction      # noqa: F401
 # from . import softmax        # noqa: F401
-from . import rnn_eltwise    # noqa: F401
 from . import swish          # noqa: F401
 
 
@@ -92,15 +91,8 @@ Works only with Python3.\n A few examples:
 
     if args.cuda_fuser == "te":
         import torch
-        torch._C._jit_set_profiling_executor(True)
-        torch._C._jit_set_texpr_fuser_enabled(True)
-        torch._C._jit_set_profiling_mode(True)
-    elif args.cuda_fuser == "old":
-        import torch
-        torch._C._jit_set_profiling_executor(False)
-        torch._C._jit_set_texpr_fuser_enabled(False)
-        torch._C._jit_override_can_fuse_on_gpu(True)
 
+        torch._C._jit_set_texpr_fuser_enabled(True)
 
     def set_global_threads(num_threads):
         os.environ["OMP_NUM_THREADS"] = str(num_threads)

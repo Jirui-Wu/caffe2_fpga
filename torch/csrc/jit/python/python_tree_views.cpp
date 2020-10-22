@@ -83,12 +83,6 @@ void initTreeViewBindings(PyObject* module) {
             self.highlight(stream);
             return stream.str();
           })
-      .def("__repr__", [](const SourceRange& self) { return self.str(); })
-      .def(
-          "__str__",
-          [](const SourceRange& self) {
-            return "SourceRange at:\n" + self.str();
-          })
       .def_property_readonly("start", &SourceRange::start)
       .def_property_readonly("end", &SourceRange::end);
   py::class_<SourceRangeFactory>(m, "SourceRangeFactory")
@@ -162,25 +156,11 @@ void initTreeViewBindings(PyObject* module) {
           }))
       .def("decl", [](const Def& def) { return def.decl(); })
       .def("name", [](const Def& def) { return def.name(); });
-  py::class_<Property, TreeView>(m, "Property")
-      .def(py::init([](const SourceRange& r,
-                       const Ident& name,
-                       const Def& getter,
-                       Def* setter) {
-        return Property::create(r, name, getter, wrap_maybe(r, setter));
-      }));
-
   py::class_<ClassDef, TreeView>(m, "ClassDef")
-      .def(py::init([](const Ident& name,
-                       std::vector<Stmt> body,
-                       std::vector<Property> props) {
+      .def(py::init([](const Ident& name, std::vector<Stmt> body) {
         const auto& r = name.range();
         return ClassDef::create(
-            r,
-            name,
-            Maybe<Expr>::create(r),
-            wrap_list(r, std::move(body)),
-            wrap_list(r, std::move(props)));
+            r, name, Maybe<Expr>::create(r), wrap_list(r, std::move(body)));
       }));
   py::class_<Decl, TreeView>(m, "Decl").def(py::init(
       [](const SourceRange& r, std::vector<Param> params, Expr* return_type) {

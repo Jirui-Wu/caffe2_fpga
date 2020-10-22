@@ -28,7 +28,6 @@ class TestPooling(hu.HypothesisTestCase):
            op_type=st.sampled_from(["MaxPool", "AveragePool", "LpPool",
                                    "MaxPool2D", "AveragePool2D"]),
            **hu.gcs)
-    @settings(deadline=10000)
     def test_pooling_separate_stride_pad(self, stride_h, stride_w,
                                          pad_t, pad_l, pad_b,
                                          pad_r, kernel, size,
@@ -90,7 +89,6 @@ class TestPooling(hu.HypothesisTestCase):
            op_type=st.sampled_from(["MaxPool", "AveragePool",
                                     "MaxPool1D", "AveragePool1D"]),
            **hu.gcs)
-    @settings(deadline=1000)
     def test_pooling_1d(self, stride, pad, kernel, size, input_channels,
                         batch_size, order, op_type, gc, dc):
         assume(pad < kernel)
@@ -124,7 +122,6 @@ class TestPooling(hu.HypothesisTestCase):
                                     "MaxPool3D", "AveragePool3D"]),
            engine=st.sampled_from(["", "CUDNN"]),
            **hu.gcs)
-    @settings(deadline=None, max_examples=50)
     def test_pooling_3d(self, stride, pad, kernel, size, input_channels,
                         batch_size, order, op_type, engine, gc, dc):
         assume(pad < kernel)
@@ -163,7 +160,6 @@ class TestPooling(hu.HypothesisTestCase):
                                     "MaxPool3D", "AveragePool3D"]),
            engine=st.sampled_from(["", "CUDNN"]),
            **hu.gcs)
-    @settings(deadline=10000)
     def test_global_pooling_3d(self, kernel, size, input_channels,
                                batch_size, order, op_type, engine, gc, dc):
         # Currently MIOpen Pooling only supports pooling with NCHW order.
@@ -222,7 +218,7 @@ class TestPooling(hu.HypothesisTestCase):
            engine=st.sampled_from(["", "CUDNN"]),
            op_type=st.sampled_from(["AveragePool", "AveragePool2D"]),
            **hu.gcs)
-    @settings(max_examples=3, deadline=None)
+    @settings(max_examples=3, timeout=10)
     def test_global_avg_pool_nchw(self, op_type, sz, batch_size, engine, gc, dc):
         ''' Special test to stress the fast path of NCHW average pool '''
         op = core.CreateOperator(
@@ -246,7 +242,7 @@ class TestPooling(hu.HypothesisTestCase):
            engine=st.sampled_from(["", "CUDNN"]),
            op_type=st.sampled_from(["MaxPool", "MaxPool2D"]),
            **hu.gcs)
-    @settings(max_examples=3, deadline=None)
+    @settings(max_examples=3, timeout=10)
     def test_global_max_pool_nchw(self, op_type, sz,
                                   batch_size, engine, gc, dc):
         ''' Special test to stress the fast path of NCHW max pool '''
@@ -282,7 +278,6 @@ class TestPooling(hu.HypothesisTestCase):
                                    "MaxPool2D", "AveragePool2D"]),
            engine=st.sampled_from(["", "CUDNN"]),
            **hu.gcs)
-    @settings(deadline=10000)
     def test_pooling(self, stride, pad, kernel, size,
                      input_channels, batch_size,
                      order, op_type, engine, gc, dc):
@@ -316,7 +311,6 @@ class TestPooling(hu.HypothesisTestCase):
            op_type=st.sampled_from(["MaxPool", "AveragePool", "LpPool"]),
            engine=st.sampled_from(["", "CUDNN"]),
            **hu.gcs)
-    @settings(deadline=10000)
     def test_global_pooling(self, size, input_channels, batch_size,
                             order, op_type, engine, gc, dc):
         # CuDNN 5 does not support deterministic max pooling.
@@ -354,7 +348,6 @@ class TestPooling(hu.HypothesisTestCase):
            order=st.sampled_from(["NCHW", "NHWC"]),
            engine=st.sampled_from(["", "CUDNN"]),
            **hu.gcs)
-    @settings(deadline=None, max_examples=50)
     def test_max_pool_grad(
             self, op_type, dim, N, C, D, H, W, kernel, stride, pad, order,
             engine, gc, dc):
@@ -419,7 +412,6 @@ class TestPooling(hu.HypothesisTestCase):
            order=st.sampled_from(["NCHW", "NHWC"]),
            engine=st.sampled_from(["", "CUDNN"]),
            **hu.gcs)
-    @settings(deadline=10000)
     def test_avg_pool_count_include_pad(
             self, op_type, dim, N, C, D, H, W, kernel, stride, pad,
             count_include_pad, order, engine, gc, dc):

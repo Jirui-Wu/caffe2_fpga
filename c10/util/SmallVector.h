@@ -957,17 +957,7 @@ class SmallVector : public SmallVectorImpl<T> {
     this->append(S, E);
   }
 
-  // note: The enable_if restricts Container to types that have a .begin() and .end()
-  // that return valid input iterators.
-  template <typename Container, std::enable_if_t<
-      std::is_convertible<
-          typename std::iterator_traits<decltype(std::declval<Container>().begin())>::iterator_category,
-          std::input_iterator_tag
-      >::value &&
-      std::is_convertible<
-          typename std::iterator_traits<decltype(std::declval<Container>().end())>::iterator_category,
-          std::input_iterator_tag
-      >::value, int> = 0>
+  template <typename Container>
   explicit SmallVector(Container&& c) : SmallVectorImpl<T>(N) {
     this->append(c.begin(), c.end());
   }
@@ -991,17 +981,7 @@ class SmallVector : public SmallVectorImpl<T> {
       SmallVectorImpl<T>::operator=(::std::move(RHS));
   }
 
-  // note: The enable_if restricts Container to types that have a .begin() and .end()
-  // that return valid input iterators.
-  template <typename Container, std::enable_if_t<
-      std::is_convertible<
-          typename std::iterator_traits<decltype(std::declval<Container>().begin())>::iterator_category,
-          std::input_iterator_tag
-      >::value &&
-      std::is_convertible<
-          typename std::iterator_traits<decltype(std::declval<Container>().end())>::iterator_category,
-          std::input_iterator_tag
-      >::value, int> = 0>
+  template <typename Container>
   const SmallVector& operator=(const Container& RHS) {
     this->assign(RHS.begin(), RHS.end());
     return *this;
@@ -1022,17 +1002,7 @@ class SmallVector : public SmallVectorImpl<T> {
     return *this;
   }
 
-  // note: The enable_if restricts Container to types that have a .begin() and .end()
-  // that return valid input iterators.
-  template <typename Container, std::enable_if_t<
-      std::is_convertible<
-          typename std::iterator_traits<decltype(std::declval<Container>().begin())>::iterator_category,
-          std::input_iterator_tag
-      >::value &&
-      std::is_convertible<
-          typename std::iterator_traits<decltype(std::declval<Container>().end())>::iterator_category,
-          std::input_iterator_tag
-      >::value, int> = 0>
+  template <typename Container>
   const SmallVector& operator=(Container&& C) {
     this->assign(C.begin(), C.end());
     return *this;

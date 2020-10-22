@@ -750,7 +750,6 @@ class AdagradOptimizer(Optimizer):
                     str(param) + "_update_counter",
                     input_as_shape=1,
                     value=0.0,
-                    dtype=core.DataType.DOUBLE,
                 )
                 prev_update_iter = param_init_net.ConstantFill(
                     num_rows,
@@ -765,7 +764,6 @@ class AdagradOptimizer(Optimizer):
                     str(param) + "_update_counter",
                     shape=[shapes[str(param)][0]],
                     value=0.0,
-                    dtype=core.DataType.DOUBLE,
                 )
                 prev_update_iter = param_init_net.ConstantFill(
                     [],

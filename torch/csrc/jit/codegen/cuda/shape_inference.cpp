@@ -13,24 +13,19 @@ namespace cuda {
 
 namespace {
 
-bool hasTypeDeviceAndDim(const TensorTypePtr& op) {
-  return op->sizes().size().has_value() && op->scalarType().has_value() &&
-      op->device().has_value();
-}
-
-/* NaiveTypePropagator
- *   Populate type/device tag on tensor, this is a transition module to
- *   cover the absence of type inference in codegen cuda fuser.
+/* NaiveShapeTypePropagator
+ *   Populate shape/type/device tag on tensor, this is a transition module to
+ *   cover the absence of shape/type inference in codegen cuda fuser.
  *
  * We only cover operations supported in codegen. We focus on propagate concrete
- * types.
+ * shapes/types.
  * It does NOT handle aliases (not supported in codegen anyway); Type promotion
  * is not guaranteed to be consistent with PyTorch (we need to serve the need of
  * codegen instead).
  */
-class NaiveTypePropagator {
+class NaiveShapeTypePropagator {
  public:
-  NaiveTypePropagator(std::shared_ptr<Graph> graph)
+  NaiveShapeTypePropagator(std::shared_ptr<Graph> graph)
       : graph_(std::move(graph)) {}
 
   void PropagateOnBlock(Block* block) {
@@ -48,7 +43,7 @@ class NaiveTypePropagator {
         }
         break;
       }
-      // unary operations that forward meta info:
+      // unary operations that forward meta info and shape:
       case aten::neg:
       case aten::abs:
       case aten::log:
@@ -83,16 +78,16 @@ class NaiveTypePropagator {
       case aten::gelu:
       case aten::tanh: {
         TORCH_CHECK(
-            hasTypeDeviceAndDim(node->input(0)->type()->cast<TensorType>()),
-            "Type, device, and dimensionality propagation has failed, or was not provided enough information.");
+            node->input(0)->type()->cast<TensorType>()->isComplete(),
+            "shape propagation failed");
         node->output()->setType(node->input(0)->type()->cast<TensorType>());
         break;
       }
       // TODO: rand_like should support cast.
       case aten::rand_like: {
         TORCH_CHECK(
-            hasTypeDeviceAndDim(node->input(0)->type()->cast<TensorType>()),
-            "Type, device, and dimensionality propagation has failed, or was not provided enough information.");
+            node->input(0)->type()->cast<TensorType>()->isComplete(),
+            "shape propagation failed");
         node->output()->setType(node->input(0)->type()->cast<TensorType>());
         break;
       }
@@ -152,7 +147,7 @@ class NaiveTypePropagator {
         const auto dims = constant_as<c10::List<int64_t>>(node->input(1));
         const auto keepdim = constant_as<bool>(node->input(2));
         TORCH_CHECK(
-            dims.has_value() && keepdim.has_value() && !keepdim.value(),
+            dims.has_value() && keepdim.has_value(),
             "Shape inference cannot handle options.");
         node->output()->setType(
             unary_reduce_type(out_type, dims->vec(), keepdim.value()));
@@ -161,7 +156,7 @@ class NaiveTypePropagator {
       default:
         TORCH_CHECK(
             false,
-            "type inference failed, unrecognized operation encountered.");
+            "shape/type inference failed, unrecognized operation encountered.");
         // TODO: generate a proper error log, as this probably means something
         //       went unexpected.
         break;
@@ -177,18 +172,23 @@ class NaiveTypePropagator {
       const TensorTypePtr& op,
       const std::vector<int64_t>& dims,
       bool keepdim) {
-    TORCH_CHECK(hasTypeDeviceAndDim(op), "requires complete shape on input");
-    auto input_size = op->sizes();
-    int64_t ndims = keepdim ? input_size.size().value() : 0;
-    if (!keepdim) {
-      for (size_t i = 0; i < input_size.size(); i++) {
-        if (std::find(dims.begin(), dims.end(), i) == dims.end()) {
-          ndims++;
-        }
+    TORCH_CHECK(
+        op->scalarType().has_value() && op->device().has_value() &&
+            op->sizes().isComplete(),
+        "requires complete shape on input");
+    std::vector<int64_t> output_size;
+    std::vector<int64_t> input_size = *op->sizes().concrete_sizes();
+    for (size_t i = 0; i < input_size.size(); i++) {
+      if (std::find(dims.begin(), dims.end(), i) == dims.end()) {
+        output_size.emplace_back(input_size[i]);
+      } else if (keepdim) {
+        // Pushing size 1 here to maintain the reduction dimension because
+        // keepdim is true;
+        output_size.emplace_back(1);
       }
     }
-    return TensorType::create(
-        *op->scalarType(), *op->device(), ndims, c10::nullopt);
+    return TensorType::createContiguous(
+        *op->scalarType(), *op->device(), output_size);
   }
 
   // TODO: we should comply to codegen type promotion.
@@ -197,33 +197,25 @@ class NaiveTypePropagator {
       TensorTypePtr const& op1,
       c10::optional<at::ScalarType> scalar_type = c10::nullopt) {
     TORCH_CHECK(
-        op0 != nullptr || op1 != nullptr,
-        "Scalar operations on binary broadcast type, not supported yet.");
+        op0 != nullptr || op1 != nullptr, "no scalar operation supported yet.");
 
     if (op0 != nullptr && op1 != nullptr) {
-      TORCH_CHECK(
-          op0->sizes().size().has_value() && op1->sizes().size().has_value(),
-          "Cannot process input tensor without concrete number of dimensions.");
-      int64_t ndims = *op0->sizes().size() > *op1->sizes().size()
-          ? *op0->sizes().size()
-          : *op1->sizes().size();
-
+      auto expanded_size = at::infer_size(
+          *op0->sizes().concrete_sizes(), *op1->sizes().concrete_sizes());
       auto promoted_scalar_type = scalar_type.has_value()
-          ? *scalar_type
+          ? scalar_type.value()
           : c10::promoteTypes(*op0->scalarType(), *op1->scalarType());
-
-      return TensorType::create(
-          promoted_scalar_type, *op0->device(), ndims, c10::nullopt);
+      // TODO: maybe contiguous is not what we want in case when layout
+      //       propagation could be beneficial.
+      return TensorType::createContiguous(
+          promoted_scalar_type, *op0->device(), expanded_size);
     } else {
       auto ptr = (op0 != nullptr) ? op0 : op1;
-      TORCH_CHECK(
-          hasTypeDeviceAndDim(ptr),
-          "Type, device, and dimensionality propagation has failed, or was not provided enough information.");
-      return TensorType::create(
-          scalar_type.has_value() ? *scalar_type : *ptr->scalarType(),
+      TORCH_CHECK(ptr->isComplete(), "shape propagation failed");
+      return TensorType::createContiguous(
+          scalar_type.has_value() ? scalar_type.value() : *ptr->scalarType(),
           *ptr->device(),
-          *ptr->sizes().size(),
-          c10::nullopt);
+          *ptr->sizes().concrete_sizes());
     }
   }
 
@@ -233,8 +225,8 @@ class NaiveTypePropagator {
 
 } // namespace
 
-void TypePropagate(std::shared_ptr<Graph>& graph) {
-  NaiveTypePropagator(graph).run();
+TORCH_CUDA_API void ShapeTypePropagate(std::shared_ptr<Graph>& graph) {
+  NaiveShapeTypePropagator(graph).run();
 }
 
 } // namespace cuda

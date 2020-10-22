@@ -4,12 +4,11 @@ import caffe2.python.hypothesis_test_util as hu
 import hypothesis.strategies as st
 import numpy as np
 from caffe2.python import core, workspace
-from hypothesis import given, settings
+from hypothesis import given
 
 
 class TestHistogram(hu.HypothesisTestCase):
     @given(rows=st.integers(1, 1000), cols=st.integers(1, 1000), **hu.gcs_cpu_only)
-    @settings(deadline=10000)
     def test_histogram__device_consistency(self, rows, cols, gc, dc):
         X = np.random.rand(rows, cols)
         bin_edges = list(np.linspace(-2, 10, num=10000))
@@ -31,7 +30,6 @@ class TestHistogram(hu.HypothesisTestCase):
         assert list(histogram_blob) == [2, 0, 4, 3, 1]
 
     @given(num_tensors=st.integers(1, 5), num_bin_edges=st.integers(2, 10000))
-    @settings(deadline=10000)
     def test_histogram__valid_inputs_1(self, num_tensors, num_bin_edges):
         self._test_histogram(
             [

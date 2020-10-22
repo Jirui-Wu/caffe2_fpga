@@ -73,8 +73,6 @@ Creation Ops
     quantize_per_tensor
     quantize_per_channel
     dequantize
-    complex
-    polar
 
 Indexing, Slicing, Joining, Mutating Ops
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -84,12 +82,9 @@ Indexing, Slicing, Joining, Mutating Ops
 
     cat
     chunk
-    dstack
     gather
-    hstack
     index_select
     masked_select
-    movedim
     narrow
     nonzero
     reshape
@@ -101,7 +96,6 @@ Indexing, Slicing, Joining, Mutating Ops
     transpose
     unbind
     unsqueeze
-    vstack
     where
 
 .. _generators:
@@ -251,18 +245,14 @@ Pointwise Ops
     abs
     absolute
     acos
-    arccos
     acosh
-    arccosh
     add
     addcdiv
     addcmul
     angle
     asin
-    arcsin
     asinh
     atan
-    arctan
     atanh
     atan2
     bitwise_not
@@ -271,7 +261,6 @@ Pointwise Ops
     bitwise_xor
     ceil
     clamp
-    clip
     conj
     cos
     cosh
@@ -283,7 +272,6 @@ Pointwise Ops
     erfinv
     exp
     expm1
-    fix
     floor
     floor_divide
     fmod
@@ -302,12 +290,9 @@ Pointwise Ops
     logical_or
     logical_xor
     logit
-    hypot
     mul
     mvlgamma
     neg
-    negative
-    nextafter
     polygamma
     pow
     rad2deg
@@ -342,9 +327,7 @@ Reduction Ops
     median
     mode
     norm
-    nansum
     prod
-    quantile
     std
     std_mean
     sum
@@ -377,9 +360,7 @@ Comparison Ops
     le
     lt
     max
-    maximum
     min
-    minimum
     ne
     sort
     topk
@@ -419,7 +400,6 @@ Other Operations
     bucketize
     cartesian_prod
     cdist
-    clone
     combinations
     cross
     cummax
@@ -487,12 +467,10 @@ BLAS and LAPACK Operations
     matmul
     matrix_power
     matrix_rank
-    matrix_exp
     mm
     mv
     orgqr
     ormqr
-    outer
     pinverse
     qr
     solve

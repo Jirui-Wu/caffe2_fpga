@@ -7,17 +7,15 @@ from caffe2.python import core
 import caffe2.python.hypothesis_test_util as hu
 import caffe2.python.serialized_test.serialized_test_util as serial
 import hypothesis.strategies as st
-from hypothesis import given, settings
 import numpy as np
 
 
 class TestIntegralImageOps(serial.SerializedTestCase):
-    @given(batch_size=st.integers(1, 3),
+    @serial.given(batch_size=st.integers(1, 3),
            height=st.integers(7, 10),
            width=st.integers(7, 10),
            channels=st.integers(1, 8),
            **hu.gcs)
-    @settings(deadline=10000)
     def test_integral_image_ops(self, batch_size, height, width, channels, gc, dc):
         N = batch_size
         C = channels
@@ -48,14 +46,13 @@ class TestIntegralImageOps(serial.SerializedTestCase):
         self.assertDeviceChecks(dc, op, [im], [0])
         self.assertReferenceChecks(gc, op, [im], integral_image)
 
-    @given(batch_size=st.integers(1, 3),
+    @serial.given(batch_size=st.integers(1, 3),
            height=st.integers(7, 10),
            width=st.integers(7, 10),
            channels=st.integers(1, 8),
            **hu.gcs)
-    @settings(deadline=10000)
-    def test_integral_image_gradient_ops(self, batch_size, height, width,
-                                         channels, gc, dc):
+    def test_integral_image_gradient_ops(self, batch_size,
+    height, width, channels, gc, dc):
         N = batch_size
         C = channels
         H = height

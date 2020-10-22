@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 
 import numpy as np
 
-from hypothesis import given, settings
+from hypothesis import given
 import hypothesis.strategies as st
 
 from caffe2.python import core
@@ -14,12 +14,11 @@ import caffe2.python.serialized_test.serialized_test_util as serial
 
 
 class TestClip(serial.SerializedTestCase):
-    @given(X=hu.tensor(min_dim=0),
+    @serial.given(X=hu.tensor(min_dim=0),
            min_=st.floats(min_value=-2, max_value=0),
            max_=st.floats(min_value=0, max_value=2),
            inplace=st.booleans(),
            **hu.gcs)
-    @settings(deadline=1000)
     def test_clip(self, X, min_, max_, inplace, gc, dc):
         # go away from the origin point to avoid kink problems
         if np.isscalar(X):

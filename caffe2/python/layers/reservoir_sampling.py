@@ -41,7 +41,7 @@ class ReservoirSampling(ModelLayer):
         )
         self.mutex = self.create_param(
             param_name='mutex',
-            shape=[],
+            shape=None,
             initializer=('CreateMutex',),
             optimizer=model.NoOptim,
         )

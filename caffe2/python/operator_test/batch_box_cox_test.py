@@ -4,7 +4,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from caffe2.python import core
-from hypothesis import given, settings
+from hypothesis import given
 
 import caffe2.python.hypothesis_test_util as hu
 import caffe2.python.serialized_test.serialized_test_util as serial
@@ -53,16 +53,14 @@ def _inputs(draw):
 
 
 class TestBatchBoxCox(serial.SerializedTestCase):
-    @given(
+    @serial.given(
         inputs=_inputs(),
         **hu.gcs_cpu_only
     )
-    @settings(deadline=10000)
     def test_batch_box_cox(self, inputs, gc, dc):
         self.batch_box_cox(inputs, gc, dc)
 
     @given(**hu.gcs_cpu_only)
-    @settings(deadline=10000)
     def test_lambda1_is_all_zero(self, gc, dc):
         inputs = (1, 1, [[2]], [0], [0])
         self.batch_box_cox(inputs, gc, dc)
@@ -74,7 +72,6 @@ class TestBatchBoxCox(serial.SerializedTestCase):
         self.batch_box_cox(inputs, gc, dc)
 
     @given(**hu.gcs_cpu_only)
-    @settings(deadline=10000)
     def test_lambda1_is_partially_zero(self, gc, dc):
         inputs = (1, 5, [[1, 2, 3, 4, 5]],
                   [0, -.5, 0, .5, 0], [0.1, 0.2, 0.3, 0.4, 0.5])
@@ -90,7 +87,6 @@ class TestBatchBoxCox(serial.SerializedTestCase):
         self.batch_box_cox(inputs, gc, dc)
 
     @given(**hu.gcs_cpu_only)
-    @settings(deadline=10000)
     def test_bound_base_away_from_zero(self, gc, dc):
         inputs = (2, 3, [[1e-5, 1e-6, 1e-7], [1e-7, -1e-6, 1e-5]],
                   [0, 0, 0], [0, 0, 1e-6])

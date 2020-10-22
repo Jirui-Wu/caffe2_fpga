@@ -154,7 +154,7 @@ pip install --no-cache-dir \
     future \
     hypothesis \
     jupyter \
-    numpy==1.18.5 \
+    numpy \
     protobuf \
     pytest \
     pyyaml \

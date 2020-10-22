@@ -203,8 +203,7 @@ struct ComputeLocationBase<scalar_t, /*align_corners=*/true> {
   }
 
   inline Vec clip_coordinates(const Vec &in) const {
-    // Invert order of clamp_min operands in order to clamp Nans to zero
-    return clamp_max(Vec(max_val), clamp_min(Vec(0), in));
+    return minimum(Vec(max_val), maximum(in, Vec(0)));
   }
 
   // same as clip_coordinates but also returns the gradient multiplier
@@ -285,8 +284,7 @@ struct ComputeLocationBase<scalar_t, /*align_corners=*/false> {
   }
 
   inline Vec clip_coordinates(const Vec &in) const {
-    // Invert order of clamp_min operands in order to clamp Nans to zero
-    return clamp_max(Vec(max_val), clamp_min(Vec(0), in));
+    return minimum(Vec(max_val), maximum(in, Vec(0)));
   }
 
   // same as clip_coordinates but also returns the gradient multiplier
@@ -716,7 +714,7 @@ struct ApplyGridSample<scalar_t, 2, GridSamplerInterpolation::Nearest,
     #ifndef _MSC_VER
     # pragma unroll
     #endif
-    for (int64_t c = 0; c < C; ++c, out_ptr += out_sC, inp_slice_ptr += inp_sC) {
+    for (int c = 0; c < C; ++c, out_ptr += out_sC, inp_slice_ptr += inp_sC) {
       // mask_gather zeros out the mask, so we need to make a copy
       auto mask_copy = mask;
       auto inp_val = mask_gather<sizeof(scalar_t)>(Vec(0), inp_slice_ptr, i_offset, mask_copy);
@@ -855,8 +853,8 @@ static inline void grid_sample_2d_grid_slice_iterator(
     // General case.
     // Strategy: Do a for-loop over H, for each W slice, use
     //           at::vec256::gather to load the x and y vectors.
-    int64_t spatial_offset = 0;
-    const int64_t i_offset_delta = grid_sW * step;
+    auto spatial_offset = 0;
+    auto i_offsets_delta = iVec(grid_sW * step);
 
     #ifndef _MSC_VER
     # pragma unroll
@@ -878,8 +876,7 @@ static inline void grid_sample_2d_grid_slice_iterator(
                  vec256::gather<sizeof(scalar_t)>(grid_ptr_y, i_offsets),
                  spatial_offset, len);
 
-        grid_ptr_x += i_offset_delta;
-        grid_ptr_y += i_offset_delta;
+        i_offsets = i_offsets + i_offsets_delta;
         spatial_offset += len;
       }
     }

@@ -568,16 +568,9 @@ class RandomInliner : public FunctionInliner {
       b = new Block({s});
     }
 
-    // Make sure theres something in the block, will be simplified out later.
-    if (b->empty()) {
-      b->append_stmt(new Block({}));
-    }
-
-    Stmt* first = b->stmts().front();
     for (auto const& p : random_vars_) {
       Var* v = p.second;
-      b->insert_stmt_before(
-          new Let(v, new Intrinsics(kRand, v->dtype())), first);
+      b->add_var_binding(v, new Intrinsics(kRand, v->dtype()));
     }
     random_vars_.clear();
     return b;
@@ -1091,7 +1084,7 @@ void LoopNest::reorderAxis(For* a, For* b) {
   CHECK(root);
 
   // Do a shallow copy of the inner blocks.
-  Block* body = new Block({});
+  Block* body = new Block(inner->body()->varBindings(), {});
   body->splice(body->end(), inner->body());
 
   For* before{outer};
@@ -1171,72 +1164,6 @@ void LoopNest::reorderAxis(For* a, For* b) {
     root->insert_stmt_after(after, newInner);
   }
 } // namespace tensorexpr
-
-void LoopNest::unroll(For* f, Stmt** unrolled) {
-  Block* p = dynamic_cast<Block*>(f->get_parent());
-  if (!f) {
-    throw malformed_input("unroll attempted on null loop");
-  } else if (!p) {
-    throw malformed_input("unroll attempted on loop with no parent");
-  }
-
-  if (!f->start()->isConstant()) {
-    throw std::runtime_error("Can't unroll due to non-constant loop start!");
-  }
-  if (!f->stop()->isConstant()) {
-    throw std::runtime_error("Can't unroll due to non-constant loop stop!");
-  }
-
-  std::vector<Stmt*> unrolled_stmts;
-  int start_val = immediateAs<int>(f->start());
-  int stop_val = immediateAs<int>(f->stop());
-  for (int current = start_val; current < stop_val; ++current) {
-    for (const auto stmt : f->body()->stmts()) {
-      auto stmt_copy = Stmt::clone(stmt);
-      unrolled_stmts.push_back(Substitute(
-          stmt_copy,
-          {{f->var(), getImmediateByType(f->var()->dtype(), current)}}));
-    }
-  }
-  *unrolled = new Block(unrolled_stmts);
-  *unrolled = IRSimplifier::simplify(*unrolled);
-
-  p->replace_stmt(f, *unrolled);
-}
-
-void LoopNest::normalize(For* f, For** normalized) {
-  if (!f) {
-    throw malformed_input("normalize attempted on null loop");
-  }
-  Block* p = dynamic_cast<Block*>(f->get_parent());
-  if (!p) {
-    throw malformed_input("normalize attempted on loop with no parent");
-  }
-
-  if (!f->start()->isConstant()) {
-    // Do not normalize when the loop start is not a constant.
-    *normalized = f;
-    return;
-  }
-
-  int start_idx = immediateAs<int>(f->start());
-  if (start_idx == 0) {
-    // No need to normalize in this case.
-    *normalized = f;
-    return;
-  }
-
-  auto for_body_normalized = Substitute(
-      Stmt::clone(f->body()),
-      {{f->var(), (VarHandle(f->var()) + ExprHandle(f->start())).node()}});
-  *normalized = For::make(
-      VarHandle(f->var()),
-      ExprHandle(0),
-      ExprHandle(f->stop()) - ExprHandle(f->start()),
-      for_body_normalized);
-
-  p->replace_stmt(f, *normalized);
-}
 
 std::vector<For*> LoopNest::getLoopStmtsFor(Tensor* t) const {
   std::vector<For*> result;

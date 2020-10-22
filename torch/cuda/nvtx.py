@@ -10,7 +10,7 @@ except ImportError:
         rangePop = _fail
         markA = _fail
 
-    _nvtx = _NVTXStub()  # type: ignore[assignment]
+    _nvtx = _NVTXStub()
 
 __all__ = ['range_push', 'range_pop', 'mark']
 

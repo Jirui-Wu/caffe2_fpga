@@ -48,13 +48,12 @@ class NNPackOpsTest(hu.HypothesisTestCase):
            kernel=st.integers(3, 5),
            size=st.integers(5, 10),
            input_channels=st.integers(1, 8),
+           output_channels=st.integers(1, 8),
            batch_size=st.integers(1, 5),
            groups=st.integers(1, 2))
     def test_convolution_correctness(self, stride, pad, kernel, size,
-                                     input_channels,
+                                     input_channels, output_channels,
                                      batch_size, groups):
-        input_channels *= groups
-        output_channels = int(input_channels / groups)
         assume(input_channels % groups == 0)
         assume(output_channels % groups == 0)
         assume(output_channels == input_channels / groups)
@@ -65,7 +64,7 @@ class NNPackOpsTest(hu.HypothesisTestCase):
         X = np.random.rand(
             batch_size, input_channels, size, size).astype(np.float32) - 0.5
         w = np.random.rand(
-            input_channels, output_channels, kernel, kernel).astype(np.float32)\
+            output_channels, input_channels, kernel, kernel).astype(np.float32)\
             - 0.5
         b = np.random.rand(output_channels).astype(np.float32) - 0.5
         order = "NCHW"
@@ -176,7 +175,7 @@ class NNPackOpsTest(hu.HypothesisTestCase):
             atol=1e-4,
             rtol=1e-4)
 
-    @settings(deadline=3600)
+    @settings(timeout=3600)
     @unittest.skipIf(not os.environ.get("CAFFE2_BENCHMARK"), "Benchmark")
     @given(stride=st.integers(1, 1),
            pad=st.integers(0, 2),
@@ -214,7 +213,7 @@ class NNPackOpsTest(hu.HypothesisTestCase):
         print("Speedup for NNPACK: {:.2f}".format(
             times[""] / times["NNPACK"]))
 
-    @settings(deadline=3600)
+    @settings(timeout=3600)
     @unittest.skipIf(not os.environ.get("CAFFE2_BENCHMARK"), "Benchmark")
     @given(size=st.integers(30, 90),
            input_channels=st.sampled_from([3, 64, 256]),

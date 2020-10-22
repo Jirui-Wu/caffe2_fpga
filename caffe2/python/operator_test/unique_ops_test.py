@@ -18,7 +18,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from hypothesis import given, settings
 import hypothesis.strategies as st
 import numpy as np
 from functools import partial
@@ -36,7 +35,7 @@ def _unique_ref(x, return_inverse):
 
 
 class TestUniqueOps(serial.SerializedTestCase):
-    @given(
+    @serial.given(
         X=hu.tensor1d(
             # allow empty
             min_len=0,
@@ -46,7 +45,6 @@ class TestUniqueOps(serial.SerializedTestCase):
         return_remapping=st.booleans(),
         **hu.gcs_no_hip
     )
-    @settings(deadline=10000)
     def test_unique_op(self, X, return_remapping, gc, dc):
         # impl of unique op does not guarantees return order, sort the input
         # so different impl return same outputs

@@ -389,28 +389,6 @@ class SimpleIREvaluator : public CodeGen, public IRVisitor {
     }
   }
 
-  template <typename T>
-  Value compare_select_op_helper(
-      const Value& lhs,
-      const Value& rhs,
-      const Value& retval1,
-      const Value& retval2,
-      CompareSelectOperation cmp_op) {
-    Value value;
-    switch (retval1.dtype().scalar_type()) {
-#define TYPE_CASE(Type, Name)                                               \
-  case ScalarType::Name:                                                    \
-    value = compare_select_op<T, Type>(lhs, rhs, retval1, retval2, cmp_op); \
-    break;
-      AT_FORALL_SCALAR_TYPES_AND2(Bool, Half, TYPE_CASE);
-#undef TYPE_CASE
-      default:
-        throw unsupported_dtype();
-    }
-
-    return value;
-  }
-
   void visit_compare_select_op(
       const CompareSelect* v,
       CompareSelectOperation cmp_op) {
@@ -431,7 +409,7 @@ class SimpleIREvaluator : public CodeGen, public IRVisitor {
     switch (lhs_v.dtype().scalar_type()) {
 #define TYPE_CASE(Type, Name)                          \
   case ScalarType::Name:                               \
-    value_ = compare_select_op_helper<Type>(           \
+    value_ = compare_select_op<Type, int>(             \
         lhs_v, rhs_v, ret_val1_v, ret_val2_v, cmp_op); \
     break;
       AT_FORALL_SCALAR_TYPES_AND2(Bool, Half, TYPE_CASE);
@@ -449,21 +427,17 @@ class SimpleIREvaluator : public CodeGen, public IRVisitor {
 #undef IMM_VISIT
 
   TORCH_API void visit(const Block* v) override {
-    const Block* last = scope_;
-    scope_ = v;
+    for (const auto& pair : v->varBindings()) {
+      bindVar(pair.first, pair.second);
+    }
+
     for (Stmt* s : v->stmts()) {
       s->accept(this);
     }
 
-    auto it = var_by_scope_.find(v);
-    if (it != var_by_scope_.end()) {
-      for (const Expr* v : it->second) {
-        eval_context_.erase(v);
-      }
-      var_by_scope_.erase(it);
+    for (const auto& pair : v->varBindings()) {
+      eval_context_.erase(pair.first);
     }
-
-    scope_ = last;
   }
 
   TORCH_API void visit(const Var* v) override {
@@ -578,21 +552,7 @@ class SimpleIREvaluator : public CodeGen, public IRVisitor {
 
   TORCH_API void visit(const IfThenElse* v) override {
     v->condition()->accept(this);
-    bool cond_v;
-    switch (value_.dtype().scalar_type()) {
-#define TYPE_CASE(Type, Name)   \
-  case ScalarType::Name: {      \
-    cond_v = value_.as<Type>(); \
-  } break;
-      AT_FORALL_SCALAR_TYPES_AND(Bool, TYPE_CASE);
-#undef TYPE_CASE
-      case ScalarType::Half:
-        throw unsupported_dtype("IfThenElse condition can't have Half dtype");
-      default:
-        throw unsupported_dtype();
-    }
-
-    if (cond_v) {
+    if (value_.as<int>()) {
       v->true_value()->accept(this);
     } else {
       v->false_value()->accept(this);
@@ -678,20 +638,19 @@ class SimpleIREvaluator : public CodeGen, public IRVisitor {
     throw unimplemented_lowering(v);
   }
 
-  template <typename T>
-  void visit_intrinsics_helper(const Intrinsics* v) {
+  TORCH_API void visit(const Intrinsics* v) override {
     std::vector<Value> values(v->nparams());
     for (int i = 0; i < v->nparams(); i++) {
       v->param(i)->accept(this);
       values[i] = this->value();
     }
-    std::vector<T> v1;
+    std::vector<float> v1;
     if (values.size() >= 1ULL) {
-      v1 = values[0].as_vec<T>();
+      v1 = values[0].as_vec<float>();
     }
-    std::vector<T> v2;
+    std::vector<float> v2;
     if (values.size() >= 2ULL) {
-      v2 = values[1].as_vec<T>();
+      v2 = values[1].as_vec<float>();
       if (v1.size() != v2.size()) {
         throw malformed_input("value size mismatch in Intrinsics", v);
       }
@@ -701,28 +660,17 @@ class SimpleIREvaluator : public CodeGen, public IRVisitor {
       throw unimplemented_lowering(v);
     }
 
-    std::vector<T> result(v1.size(), -1);
+    std::vector<float> result(v1.size(), -1);
     if (values.size() == 1ULL) {
       for (size_t i = 0; i < v1.size(); i++) {
-        result[i] = compute_intrinsics<T>(v->op_type(), v1[i]);
+        result[i] = compute_intrinsics(v->op_type(), v1[i]);
       }
     } else {
       for (size_t i = 0; i < v1.size(); i++) {
-        result[i] = compute_intrinsics<T>(v->op_type(), v1[i], v2[i]);
+        result[i] = compute_intrinsics(v->op_type(), v1[i], v2[i]);
       }
     }
     value_ = Value(result);
-  }
-
-  TORCH_API void visit(const Intrinsics* v) override {
-    auto ty = v->dtype().scalar_type();
-    if (ty == ScalarType::Float) {
-      visit_intrinsics_helper<float>(v);
-    } else if (ty == ScalarType::Double) {
-      visit_intrinsics_helper<double>(v);
-    } else {
-      throw unsupported_dtype();
-    }
   }
 
   void visit(const Allocate* v) override {
@@ -756,11 +704,6 @@ class SimpleIREvaluator : public CodeGen, public IRVisitor {
     buffer_mapping_.erase(buffer_var);
   }
 
-  void visit(const Let* v) override {
-    var_by_scope_[scope_].push_back(v->var());
-    bindVar(v->var(), v->value());
-  }
-
   void visit(const Cond* v) override {
     v->condition()->accept(this);
     if (value().as<int>()) {
@@ -784,8 +727,7 @@ class SimpleIREvaluator : public CodeGen, public IRVisitor {
     apply_mutator(&intrinsics_expander);
   }
 
-  template <typename T>
-  static T compute_intrinsics(IntrinsicsOp op_type, T v) {
+  static float compute_intrinsics(IntrinsicsOp op_type, float v) {
     switch (op_type) {
       case kSin:
         return std::sin(v);
@@ -838,15 +780,14 @@ class SimpleIREvaluator : public CodeGen, public IRVisitor {
       case kLgamma:
         return std::lgamma(v);
       case kFrac:
-        T intpart;
+        float intpart;
         return std::modf(v, &intpart);
       default:
         throw std::runtime_error("Invalid op_type: " + c10::to_string(op_type));
     }
   }
 
-  template <typename T>
-  static T compute_intrinsics(IntrinsicsOp op_type, T v1, T v2) {
+  static float compute_intrinsics(IntrinsicsOp op_type, float v1, float v2) {
     switch (op_type) {
       case kPow:
         return std::pow(v1, v2);
@@ -862,9 +803,7 @@ class SimpleIREvaluator : public CodeGen, public IRVisitor {
   }
 
   Value value_;
-  const Block* scope_;
   std::unordered_map<const Expr*, Value> eval_context_;
-  std::unordered_map<const Block*, std::vector<const Expr*>> var_by_scope_;
   std::unordered_map<const Var*, void*> buffer_mapping_;
   std::unordered_map<const Var*, std::unique_ptr<std::vector<int>>>
       internal_buffers_;

@@ -872,7 +872,6 @@ if __name__ == '__main__':
                 'share/cmake/Caffe2/Modules_CUDA_fix/upstream/*.cmake',
                 'share/cmake/Caffe2/Modules_CUDA_fix/upstream/FindCUDA/*.cmake',
                 'share/cmake/Gloo/*.cmake',
-                'share/cmake/Tensorpipe/*.cmake',
                 'share/cmake/Torch/*.cmake',
             ],
             'caffe2': [

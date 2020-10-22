@@ -1,17 +1,16 @@
 import re
-from typing import Match, Optional, Sequence, Mapping
 
 # match $identifier or ${identifier} and replace with value in env
 # If this identifier is at the beginning of whitespace on a line
 # and its value is a list then it is treated as
-# block substitution by indenting to that depth and putting each element
+# block subsitution by indenting to that depth and putting each element
 # of the list on its own line
 # if the identifier is on a line starting with non-whitespace and a list
 # then it is comma separated ${,foo} will insert a comma before the list
 # if this list is not empty and ${foo,} will insert one after.
 
 
-class CodeTemplate:
+class CodeTemplate(object):
     # Python 2.7.5 has a bug where the leading (^[^\n\S]*)? does not work,
     # workaround via appending another [^\n\S]? inside
 
@@ -23,32 +22,28 @@ class CodeTemplate:
 
     substitution_str = substitution_str.replace(r'\w', r'[a-zA-Z0-9_]')
 
-    substitution = re.compile(substitution_str, re.MULTILINE)
-
-    pattern: str
-    filename: str
+    subtitution = re.compile(substitution_str, re.MULTILINE)
 
     @staticmethod
-    def from_file(filename: str) -> 'CodeTemplate':
+    def from_file(filename):
         with open(filename, 'r') as f:
             return CodeTemplate(f.read(), filename)
 
-    def __init__(self, pattern: str, filename: str = "") -> None:
+    def __init__(self, pattern, filename=""):
         self.pattern = pattern
         self.filename = filename
 
-    def substitute(self, env: Optional[Mapping[str, object]] = None, **kwargs: object) -> str:
+    def substitute(self, env=None, **kwargs):
         if env is None:
             env = {}
 
-        def lookup(v: str) -> object:
-            assert env is not None
+        def lookup(v):
             return kwargs[v] if v in kwargs else env[v]
 
-        def indent_lines(indent: str, v: Sequence[object]) -> str:
+        def indent_lines(indent, v):
             return "".join([indent + l + "\n" for e in v for l in str(e).splitlines()]).rstrip()
 
-        def replace(match: Match[str]) -> str:
+        def replace(match):
             indent = match.group(1)
             key = match.group(2)
             comma_before = ''
@@ -73,7 +68,7 @@ class CodeTemplate:
                 return comma_before + middle + comma_after
             else:
                 return str(v)
-        return self.substitution.sub(replace, self.pattern)
+        return self.subtitution.sub(replace, self.pattern)
 
 
 if __name__ == "__main__":

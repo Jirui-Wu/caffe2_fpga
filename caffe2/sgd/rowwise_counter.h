@@ -4,6 +4,7 @@
 
 namespace caffe2 {
 
+template <typename T>
 class RowWiseCounterOp final : public Operator<CPUContext> {
  public:
   RowWiseCounterOp(const OperatorDef& operator_def, Workspace* ws)
@@ -27,7 +28,7 @@ class RowWiseCounterOp final : public Operator<CPUContext> {
   bool DoRunWithType() {
     auto* prev_iter =
         Output(OUTPUT_PREV_ITER)->template mutable_data<int64_t>();
-    auto* counter = Output(OUTPUT_COUNTER)->template mutable_data<double>();
+    auto* counter = Output(OUTPUT_COUNTER)->template mutable_data<T>();
 
     const int64_t curr_iter = Input(ITER).template data<int64_t>()[0];
     const auto* indices = Input(INDICES).template data<SIndex>();

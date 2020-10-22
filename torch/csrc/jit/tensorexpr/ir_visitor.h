@@ -40,7 +40,6 @@ class Intrinsics;
 class FunctionCall;
 class Allocate;
 class Free;
-class Let;
 class Cond;
 class Term;
 class Polynomial;
@@ -92,7 +91,6 @@ class TORCH_API IRVisitor {
   virtual void visit(const FunctionCall* v);
   virtual void visit(const Allocate* v);
   virtual void visit(const Free* v);
-  virtual void visit(const Let* v);
   virtual void visit(const Cond* v);
   virtual void visit(const Term* v);
   virtual void visit(const Polynomial* v);

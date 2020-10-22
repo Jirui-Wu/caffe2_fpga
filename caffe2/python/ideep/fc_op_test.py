@@ -18,7 +18,6 @@ import caffe2.python.ideep_test_util as mu
 class FcTest(hu.HypothesisTestCase):
     @given(n=st.integers(1, 5), m=st.integers(1, 5),
            k=st.integers(1, 5), **mu.gcs)
-    @settings(deadline=1000)
     def test_fc_2_dims(self, n, m, k, gc, dc):
         X = np.random.rand(m, k).astype(np.float32) - 0.5
         W = np.random.rand(n, k).astype(np.float32) - 0.5
@@ -137,7 +136,6 @@ class FcTest(hu.HypothesisTestCase):
            w=st.integers(1, 5),
            axis_w=st.integers(1, 3),
            **mu.gcs)
-    @settings(deadline=1000)
     def test_fc_with_axis_w(self, n, o, i, h, w, axis_w, gc, dc):
         W = np.random.rand(o, i, h, w).astype(np.float32) - 0.5
         k = reduce((lambda x, y: x * y), [o, i, h, w][axis_w - 4:])
@@ -228,7 +226,6 @@ class FcTest(hu.HypothesisTestCase):
 
     @given(n=st.integers(1, 5), m=st.integers(1, 5),
            k=st.integers(1, 5), **mu.gcs)
-    @settings(deadline=10000)
     def test_fc_4_dims_src(self, n, m, k, gc, dc):
         X = np.random.rand(m, k, m, m).astype(np.float32) - 0.5
         W = np.random.rand(n, k * m * m).astype(np.float32) - 0.5
@@ -247,7 +244,6 @@ class FcTest(hu.HypothesisTestCase):
 
     @given(n=st.integers(1, 5), m=st.integers(1, 5),
            k=st.integers(1, 5), **mu.gcs)
-    @settings(deadline=10000)
     def test_fc_4_dims(self, n, m, k, gc, dc):
         X = np.random.rand(m, k, m, m).astype(np.float32) - 0.5
         W = np.random.rand(n, k, m, m).astype(np.float32) - 0.5

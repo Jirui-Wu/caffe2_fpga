@@ -60,7 +60,6 @@ class CudaPrinter : public IRPrinter {
   void visit(const Block* v) override;
   void visit(const Allocate* v) override;
   void visit(const Free* v) override;
-  void visit(const Let* v) override;
 
   const std::vector<const Expr*>& gpu_block_extents() const {
     return gpu_block_extents_;

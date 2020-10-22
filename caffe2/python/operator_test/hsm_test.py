@@ -2,7 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
-from hypothesis import given, settings
+from hypothesis import given
 import numpy as np
 import unittest
 
@@ -178,7 +178,6 @@ class TestHsm(hu.HypothesisTestCase):
     # symmetric derivative calculated using Euler Method
     # TODO : convert to both cpu and gpu test when ready.
     @given(**hu.gcs_cpu_only)
-    @settings(deadline=10000)
     def test_hsm_gradient(self, gc, dc):
         samples = 10
         dim_in = 5

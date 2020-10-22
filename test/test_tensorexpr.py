@@ -5,7 +5,7 @@ import unittest
 
 from torch.testing._internal.common_utils import suppress_warnings, num_profiled_runs
 
-from torch.testing._internal.te_utils import CudaCodeGenCreated, CudaCodeGenExecuted, \
+from te_utils import CudaCodeGenCreated, CudaCodeGenExecuted, \
     LLVMCodeGenExecuted, SimpleIREvalExecuted
 
 class BaseTestClass(unittest.TestCase):
@@ -453,7 +453,7 @@ class TestTensorExprFuser(BaseTestClass):
             return c
 
         traced = torch.jit.trace(easy, (torch.zeros(1024), torch.zeros(1024)))
-        aa = np.empty([1024], dtype=np.int32)
+        aa = np.array(1024, dtype=int)
         aa.fill(5)
         a = torch.from_numpy(aa)
         b = torch.zeros(1024, dtype=torch.int32)
@@ -479,7 +479,7 @@ class TestTensorExprFuser(BaseTestClass):
             return c
 
         traced = torch.jit.trace(easy, (torch.zeros(1024), torch.zeros(1024)))
-        aa = np.empty([1024], dtype=np.int32)
+        aa = np.array(1024, dtype=int)
         aa.fill(5)
         a = torch.from_numpy(aa)
         b = torch.zeros(1024, dtype=torch.int32)
@@ -856,6 +856,7 @@ class TestTensorExprFuser(BaseTestClass):
             test_cosh,
             test_tan,
             test_atan,
+            test_tanh,
             test_sqrt,
             test_floor,
             test_ceil,
@@ -872,13 +873,11 @@ class TestTensorExprFuser(BaseTestClass):
             test_erfc,
             test_frac,
             test_lgamma,
+            test_sigmoid,
             test_reciprocal,
+            test_threshold,
             test_neg,
-            # TODO: properly handle NaNs in Max/Min and reenable these tests:
-            # test_threshold,
-            # test_relu,
-            # test_tanh,
-            # test_sigmoid,
+            test_relu,
         }
         device_options = ["cpu", "cuda"] if torch.cuda.is_available() else ['cpu']
 
@@ -887,7 +886,7 @@ class TestTensorExprFuser(BaseTestClass):
                 rand_a = torch.rand(1024, device=dev)
                 rand_b = torch.rand(1024, device=dev)
                 ins = 20 * torch.rand(1024, device=dev)
-                cc = np.empty([1024], dtype=np.float32)
+                cc = np.array(1024, dtype=float)
                 cc.fill(np.nan)
                 nans = torch.from_numpy(cc).to(dev)
                 traced = torch.jit.trace(torch_fn, (ins, ins))
@@ -898,12 +897,7 @@ class TestTensorExprFuser(BaseTestClass):
                 traced = torch.jit.trace(torch_fn, (ins, ins))
                 x = traced(nans, rand_b)
                 y = torch_fn(nans, rand_b)
-                try:
-                    np.testing.assert_allclose(x.cpu().numpy(), y.cpu().numpy())
-                except AssertionError:
-                    # Print extra info before exiting:
-                    print("Failed on dev=", dev, "function=", torch_fn)
-                    np.testing.assert_allclose(x.cpu().numpy(), y.cpu().numpy())
+                np.testing.assert_allclose(x.cpu().numpy(), y.cpu().numpy())
 
 
     def test_rand_like(self):
@@ -1031,7 +1025,6 @@ class TestTensorExprFuser(BaseTestClass):
     def test_cat_cuda(self):
         self._test_cat('cuda')
 
-    @unittest.skip("temporarily disable")
     def test_scalar(self):
         @torch.jit.script
         def test_float(x, y, z, a, b):
@@ -1073,7 +1066,6 @@ class TestTensorExprFuser(BaseTestClass):
 #    r = test(x, y, z)
 #    assert llvm.elapsed_value == 1 or interp.elapsed_value() > 1
 
-    @unittest.skip("no shape inference for aten::slice yet")
     def test_slice(self):
         def easy(x, y):
             a = x[0:512:2]
@@ -1245,7 +1237,6 @@ class TestTensorExprFuser(BaseTestClass):
         np.testing.assert_allclose(x.numpy(), y.numpy())
 
     @unittest.skipIf(not torch.cuda.is_available(), "requires CUDA")
-    @unittest.skip("temporarily disable")
     def test_unused(self):
         def test(x, y):
             return x * x + torch.rand_like(y)
@@ -1268,18 +1259,6 @@ class TestTensorExprFuser(BaseTestClass):
         cx = CudaCodeGenExecuted()
         assert torch.allclose(scripted(a), 2 * a)
         assert cx.elapsed_value() == 1
-
-    def test_mask(self):
-        devices = ["cuda", "cpu"] if torch.cuda.is_available() else ["cpu"]
-
-        def test(x):
-            return x.unsqueeze(1) == 0
-
-        for d in devices:
-            x = torch.rand(4, device=d) > 0.5
-            scripted = torch.jit.script(test)
-            scripted(x)
-            assert torch.equal(scripted(x), test(x))
 
 if __name__ == '__main__':
     unittest.main()

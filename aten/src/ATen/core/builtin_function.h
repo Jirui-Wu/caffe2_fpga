@@ -94,7 +94,9 @@ struct BuiltinOpFunction : public Function {
 
   std::string pretty_print_schema() const override {
     TORCH_INTERNAL_ASSERT(false);
-    return "";
+    std::stringstream ss;
+    ss << getSchema();
+    return ss.str();
   }
 
   Function& setSchema(c10::FunctionSchema schema) override {

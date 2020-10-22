@@ -647,8 +647,7 @@ class FunctionEvent(FormattedTimesMixin):
     """Profiling information about a single function."""
     def __init__(
             self, id, node_id, name, thread, cpu_start, cpu_end, input_shapes=None,
-            cpu_memory_usage=0, cuda_memory_usage=0, is_async=False, is_remote=True,
-            sequence_nr=-1):
+            cpu_memory_usage=0, cuda_memory_usage=0, is_async=False, is_remote=True):
         self.id = id
         self.node_id = node_id
         self.name = name
@@ -662,7 +661,6 @@ class FunctionEvent(FormattedTimesMixin):
         self.cuda_memory_usage = cuda_memory_usage
         self.is_async = is_async
         self.is_remote = is_remote
-        self.sequence_nr = sequence_nr
 
     def append_kernel(self, name, device, start, end):
         self.kernels.append(Kernel(name, device, Interval(start, end)))
@@ -718,7 +716,7 @@ class FunctionEvent(FormattedTimesMixin):
         return (
             '<FunctionEvent id={} node_id={} cpu_time={} cpu_start={} cpu_end={} '
             'cpu_children={} cuda_time={} name={} thread={} input_shapes={} '
-            'cpu_memory_usage={} cuda_memory_usage={} is_async={} is_remote={} seq_nr={}>'.format(
+            'cpu_memory_usage={} cuda_memory_usage={} is_async={} is_remote={}>'.format(
                 self.id,
                 self.node_id,
                 self.cpu_time_str,
@@ -733,7 +731,6 @@ class FunctionEvent(FormattedTimesMixin):
                 self.cuda_memory_usage,
                 self.is_async,
                 self.is_remote,
-                self.sequence_nr,
             )
         )
 
@@ -923,7 +920,6 @@ def parse_cpu_trace(thread_records):
                     cuda_memory_usage=cuda_memory_usage,
                     is_async=is_async,
                     is_remote=is_remote_event,
-                    sequence_nr=start.sequence_nr(),
                 )
                 # note: async events have only cpu total time
                 if not is_async and start.has_cuda():

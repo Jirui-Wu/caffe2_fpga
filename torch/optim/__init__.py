@@ -18,7 +18,6 @@ from .rmsprop import RMSprop
 from .optimizer import Optimizer
 from .lbfgs import LBFGS
 from . import lr_scheduler
-from . import swa_utils
 
 del adadelta
 del adagrad

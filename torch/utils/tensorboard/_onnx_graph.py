@@ -34,10 +34,10 @@ def parse(graph):
         )
 
     for node in graph.node:
-        _attr = []
+        attr = []
         for s in node.attribute:
-            _attr.append(' = '.join([str(f[1]) for f in s.ListFields()]))
-        attr = ', '.join(_attr).encode(encoding='utf_8')
+            attr.append(' = '.join([str(f[1]) for f in s.ListFields()]))
+        attr = ', '.join(attr).encode(encoding='utf_8')
         print(node.output[0])
         nodes.append(NodeDef(
             name=node.output[0].encode(encoding='utf_8'),

@@ -15,19 +15,12 @@ namespace fuser {
 
 // Order of strength
 enum class ValType {
+  TensorIndex,
   TensorDomain,
   IterDomain,
   TensorView,
   Scalar,
-  NamedScalar,
-
-  // Temporary: Kernel IR nodes
-  TensorIndex,
-  KirNamedScalar,
-  KirScalar,
-  KirTensorDomain,
-  KirIterDomain,
-  KirTensorView,
+  NamedScalar
 };
 
 enum class DataType { Bool, Float, Half, Int, Null };
@@ -39,20 +32,11 @@ enum class ExprType {
   TernaryOp,
   ReductionOp,
   BroadcastOp,
-  Split,
-  Merge,
-
-  // Temporary: Kernel IR nodes
-  GridReduction,
   ForLoop,
   IfThenElse,
   Allocate,
-  Sync,
-  KirUnaryOp,
-  KirBinaryOp,
-  KirTernaryOp,
-  KirReductionOp,
-  KirBroadcastOp,
+  Split,
+  Merge
 };
 
 enum class UnaryOpType {
@@ -138,27 +122,11 @@ enum class ParallelType {
 
 enum class MemoryType { Local, Shared, Global };
 
-// sometimes broadcasted tensors may be inputed in the kernel with an explicit 1
-// size. If that size is there, we need to account that there's also a stride
-// there, even if the stride = 0. If we don't account for that stride when
-// accessing a tensor like: [b2{1}, i0, i1] we would linearize the access like:
-// [i0*stride[0] + i1*stride[1]] when it should be: [i0*stride[1] +
-// i1*stride[2]]. Broadcasts that translate to a physical memory dim we consider
-// "with stride", Broadcasts only through our broadcast op we consider "without
-// stride"
-enum class IterType {
-  Iteration,
-  Reduction,
-  BroadcastWithStride,
-  BroadcastWithoutStride
-};
-
 ValType promote_type(const ValType& t1, const ValType& t2);
 DataType promote_type(const DataType& t1, const DataType& t2);
 bool is_logical_op(const BinaryOpType& bot);
 
 DataType aten_to_data_type(const at::ScalarType& scalar_type);
-at::ScalarType data_type_to_aten(const DataType& data_type);
 
 TORCH_CUDA_API std::ostream& operator<<(std::ostream&, const ValType);
 TORCH_CUDA_API std::ostream& operator<<(std::ostream&, const DataType);
@@ -167,8 +135,6 @@ TORCH_CUDA_API std::ostream& operator<<(std::ostream&, const UnaryOpType);
 TORCH_CUDA_API std::ostream& operator<<(std::ostream&, const BinaryOpType);
 TORCH_CUDA_API std::ostream& operator<<(std::ostream&, const TernaryOpType);
 TORCH_CUDA_API std::ostream& operator<<(std::ostream&, const ParallelType);
-TORCH_CUDA_API std::ostream& operator<<(std::ostream&, const MemoryType);
-TORCH_CUDA_API std::ostream& operator<<(std::ostream&, const IterType);
 
 std::string stringifyThreadSize(const ParallelType);
 std::string stringifyThread(const ParallelType);
@@ -180,17 +146,6 @@ TORCH_CUDA_API c10::optional<std::string> cast_func_str(
     const std::pair<DataType, DataType>&);
 
 size_t dataTypeSize(DataType type);
-
-enum class LaunchConfigType {
-  Compatible,
-  SharedMemory,
-  BIDz,
-  BIDy,
-  BIDx,
-  TIDz,
-  TIDy,
-  TIDx
-};
 
 } // namespace fuser
 } // namespace jit

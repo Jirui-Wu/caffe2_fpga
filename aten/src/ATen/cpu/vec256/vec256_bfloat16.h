@@ -239,18 +239,12 @@ public:
     return map(Sleef_erfcf8_u15);
   }
   Vec256<BFloat16> erfinv() const {
-    __m256 lo, hi;
-    cvtbf16_fp32(values, lo, hi);
-    __at_align32__ float tmp1[size() / 2], tmp2[size() / 2];
-    _mm256_storeu_ps(reinterpret_cast<float*>(tmp1), lo);
-    _mm256_storeu_ps(reinterpret_cast<float*>(tmp2), hi);
-    for (int64_t i = 0; i < size() / 2; i++) {
-      tmp1[i] = calc_erfinv(tmp1[i]);
-      tmp2[i] = calc_erfinv(tmp2[i]);
+    __at_align32__ int16_t tmp[size()];
+    store(tmp);
+    for (int64_t i = 0; i < size(); i++) {
+      tmp[i] = calc_erfinv((float)tmp[i]);
     }
-    auto o1 = _mm256_loadu_ps(tmp1);
-    auto o2 = _mm256_loadu_ps(tmp2);
-    return cvtfp32_bf16(o1, o2);
+    return loadu(tmp);
   }
   Vec256<BFloat16> exp() const {
     return map(Sleef_expf8_u10);
@@ -265,15 +259,6 @@ public:
     cvtbf16_fp32(q.values, q_lo, q_hi);
     auto o1 = Sleef_fmodf8(x_lo, q_lo);
     auto o2 = Sleef_fmodf8(x_hi, q_hi);
-    return cvtfp32_bf16(o1, o2);
-  }
-  Vec256<BFloat16> hypot(const Vec256<BFloat16> &b) const {
-    __m256 lo, hi;
-    __m256 b1, b2;
-    cvtbf16_fp32(values, lo, hi);
-    cvtbf16_fp32(b.values, b1, b2);
-    auto o1 = Sleef_hypotf8_u05(lo, b1);
-    auto o2 = Sleef_hypotf8_u05(hi, b2);
     return cvtfp32_bf16(o1, o2);
   }
   Vec256<BFloat16> log() const {

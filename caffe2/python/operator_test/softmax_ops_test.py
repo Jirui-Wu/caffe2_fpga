@@ -4,7 +4,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from caffe2.python import core, workspace
-from hypothesis import given, settings
+from hypothesis import given
 import caffe2.python.hypothesis_test_util as hu
 import caffe2.python.serialized_test.serialized_test_util as serial
 import hypothesis.strategies as st
@@ -57,11 +57,10 @@ class TestSoftmaxOps(serial.SerializedTestCase):
             reference=label_softmax,
         )
 
-    @given(n=st.sampled_from([0, 2, 4, 71, 103, 555, 751, 1201]),
+    @serial.given(n=st.sampled_from([0, 2, 4, 71, 103, 555, 751, 1201]),
                   D=st.sampled_from([0, 4, 8, 64, 79, 256, 333, 1000]),
                   engine=st.sampled_from([None, 'CUDNN']),
                   **hu.gcs)
-    @settings(deadline=10000)
     def test_softmax_grad(self, n, D, engine, gc, dc):
         # n = number of examples, D = |labels|
         # Initialize X and add 1e-2 for numerical stability
@@ -141,9 +140,8 @@ class TestSoftmaxOps(serial.SerializedTestCase):
         self.assertGradientChecks(
             gc, op, [X], 0, [0], stepsize=1e-4, threshold=1e-2)
 
-    @given(n=st.integers(2, 10), D=st.integers(4, 16),
-           only_loss=st.booleans(), **hu.gcs)
-    @settings(deadline=1000)
+    @serial.given(n=st.integers(2, 10), D=st.integers(4, 16),
+                  only_loss=st.booleans(), **hu.gcs)
     def test_softmax_with_loss(self, n, D, gc, only_loss, dc):
         # n = number of examples, D = |labels|
         # Initialize X and add 1e-2 for numerical stability
@@ -195,7 +193,6 @@ class TestSoftmaxOps(serial.SerializedTestCase):
         label_prob=st.booleans(),
         **hu.gcs
     )
-    @settings(deadline=10000)
     def test_softmax_with_loss_axis_2(
         self, n, D, only_loss, label_prob,
         gc, dc
@@ -301,7 +298,6 @@ class TestSoftmaxOps(serial.SerializedTestCase):
                 )
 
     @given(n=st.integers(2, 10), D=st.integers(4, 16), **hu.gcs)
-    @settings(deadline=1000)
     def test_softmax_with_loss_label_prob(self, n, D, gc, dc):
         # n = number of examples, D = |labels|
         # Initialize X and add 1e-2 for numerical stability
@@ -358,7 +354,6 @@ class TestSoftmaxOps(serial.SerializedTestCase):
         D=st.integers(4, 16),
         only_loss=st.booleans(),
         **hu.gcs)
-    @settings(deadline=1000)
     def test_softmax_with_loss_weighted(self, n, D, only_loss, gc, dc):
         # n = number of examples, D = |labels|
         # Initialize X and add 1e-2 for numerical stability
@@ -407,7 +402,6 @@ class TestSoftmaxOps(serial.SerializedTestCase):
             gc, op, [X, label, weights], 0, [1], stepsize=1e-4, threshold=1e-2)
 
     @given(n=st.integers(2, 10), D=st.integers(4, 16), **hu.gcs)
-    @settings(deadline=1000)
     def test_softmax_with_loss_label_prob_weighted(self, n, D, gc, dc):
         # n = number of examples, D = |labels|
         # Initialize X and add 1e-2 for numerical stability
@@ -461,9 +455,8 @@ class TestSoftmaxOps(serial.SerializedTestCase):
         self.assertGradientChecks(
             gc, op, [X, label, weights], 0, [1], stepsize=1e-4, threshold=1e-2)
 
-    @given(n=st.integers(2, 5), D=st.integers(2, 4),
+    @serial.given(n=st.integers(2, 5), D=st.integers(2, 4),
            weighted=st.booleans(), **hu.gcs)
-    @settings(deadline=None, max_examples=50)
     def test_spatial_softmax_with_loss(self, n, D, weighted, gc, dc):
         # n = number of examples, D = |labels|
         # Initialize X and add 1e-2 for numerical stability

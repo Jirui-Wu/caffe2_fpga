@@ -184,6 +184,11 @@ void HashProvider::visit(const Store* v) {
 void HashProvider::visit(const Block* v) {
   CACHE_GUARD();
   SimplifierHashType hash;
+  for (const auto& pair : v->varBindings()) {
+    pair.first->accept(this);
+    pair.second->accept(this);
+    hash = hash_combine(hash, hashOf(pair.first), hashOf(pair.second));
+  }
 
   for (Stmt* s : *v) {
     s->accept(this);

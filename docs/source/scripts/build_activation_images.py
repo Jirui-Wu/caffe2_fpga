@@ -36,7 +36,6 @@ functions = [
     'ReLU6',
     'RReLU',
     'SELU',
-    'SiLU',
     'CELU',
     'GELU',
     'Sigmoid',

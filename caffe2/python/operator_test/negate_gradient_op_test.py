@@ -6,15 +6,14 @@ from __future__ import unicode_literals
 from caffe2.python import workspace, core
 import caffe2.python.hypothesis_test_util as hu
 import caffe2.python.serialized_test.serialized_test_util as serial
-from hypothesis import given, settings
+from hypothesis import given
 import hypothesis.strategies as st
 import numpy as np
 
 
 class TestNegateGradient(serial.SerializedTestCase):
 
-    @given(X=hu.tensor(), inplace=st.booleans(), **hu.gcs)
-    @settings(deadline=10000)
+    @serial.given(X=hu.tensor(), inplace=st.booleans(), **hu.gcs)
     def test_forward(self, X, inplace, gc, dc):
         def neg_grad_ref(X):
             return (X,)

@@ -186,6 +186,7 @@ bool ConvOp<T, Context>::RunOnDeviceWithOrderNCHW() {
   }
   return true;
 }
+//marked by jirui
 
 // The implementations.
 template <typename T, class Context>

@@ -93,10 +93,6 @@ struct CAFFE2_API CUDAHooksInterface {
     return false;
   }
 
-  virtual bool hasCUDART() const {
-    return false;
-  }
-
   virtual bool hasMAGMA() const {
     return false;
   }
@@ -147,10 +143,6 @@ struct CAFFE2_API CUDAHooksInterface {
 
   virtual long versionCuDNN() const {
     TORCH_CHECK(false, "Cannot query cuDNN version without ATen_cuda library. ", CUDA_HELP);
-  }
-
-  virtual long versionCUDART() const {
-    TORCH_CHECK(false, "Cannot query CUDART version without ATen_cuda library. ", CUDA_HELP);
   }
 
   virtual std::string showConfig() const {

@@ -1,5 +1,4 @@
 from collections import OrderedDict
-from typing import Dict, Any
 
 from tensorboard.compat.proto.config_pb2 import RunMetadata
 from tensorboard.compat.proto.graph_pb2 import GraphDef
@@ -214,7 +213,7 @@ def parse(graph, trace, args=None, omit_useless_nodes=True):
         if node.type().kind() != CLASSTYPE_KIND:
             nodes_py.append(NodePyIO(node, 'input'))
 
-    attr_to_scope: Dict[Any, str] = dict()
+    attr_to_scope = dict()
     for node in graph.nodes():
         if node.kind() == GETATTR_KIND:
             attr_name = node.s('name')
@@ -229,16 +228,16 @@ def parse(graph, trace, args=None, omit_useless_nodes=True):
             # We don't need classtype nodes; scope will provide this information
             if node.output().type().kind() != CLASSTYPE_KIND:
                 node_py = NodePyOP(node)
-                node_py.scopeName = attr_to_scope[attr_name]  # type: ignore
+                node_py.scopeName = attr_to_scope[attr_name]
                 nodes_py.append(node_py)
         else:
             nodes_py.append(NodePyOP(node))
 
     for i, node in enumerate(graph.outputs()):  # Create sink nodes for output ops
-        node_pyio = NodePyIO(node, 'output')
-        node_pyio.debugName = "output.{}".format(i + 1)
-        node_pyio.inputs = [node.debugName()]
-        nodes_py.append(node_pyio)
+        node_py = NodePyIO(node, 'output')
+        node_py.debugName = "output.{}".format(i + 1)
+        node_py.inputs = [node.debugName()]
+        nodes_py.append(node_py)
 
     def parse_traced_name(module):
         if isinstance(module, torch.jit.TracedModule):

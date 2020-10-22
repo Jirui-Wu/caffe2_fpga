@@ -1,0 +1,137 @@
+//change based on context.h as most operations are still on CPU, only the GEMM kernel is on FPGA
+#ifndef CAFFE2_CORE_CONTEXT_FPGA_H_
+#define CAFFE2_CORE_CONTEXT_FPGA_H_
+
+#include <cstdlib>
+#include <ctime>
+#include <random>
+#include <unordered_map>
+
+#include <c10/util/typeid.h>
+#include "caffe2/core/allocator.h"
+#include "caffe2/core/context_base.h"
+#include "caffe2/core/event.h"
+#include "caffe2/core/logging.h"
+#include "caffe2/proto/caffe2_pb.h"
+
+#include <c10/util/ArrayRef.h>
+//include CPUContext
+#include "caffe2/core/context.h"
+//for FPGA interface setup
+#include "caffe2/fpga/xcl2.hpp"
+//C10_DECLARE_bool(caffe2_report_cpu_memory_usage);
+
+namespace caffe2 {
+
+/*
+Must notice that CPU context is marked ny the keyword final, cannot be inherited from
+*/
+class CAFFE2_API FPGAContext final : public BaseContext{
+ public:
+  //constructors
+  explicit FPGAContext(const DeviceOption& option);
+  explicit FPGAContext(const at::Device& device)
+      : FPGAContext(DeviceToOption(device)) {}
+  //destructor
+  ~FPGAContext() override {}
+
+
+  //CHANGED HERE, BY DEFAULT FPGA operators have async parts
+  static bool HasAsyncPartDefault() {
+    return true;
+  }
+
+  static bool SupportsAsyncScheduling() {
+    return true;
+  }
+
+inline void SwitchToDevice(int /*stream_id*/) override{
+  // std::cout << "Setting up interfaces..." << std::endl;
+  // std::vector<cl::Device> g_devices = xcl::get_xil_devices();
+  // cl::Device device = g_devices[0];
+  // cl_int err;
+  // cl::Context context(device, NULL, NULL, NULL, &err);
+  // deviceName = device.getInfo<CL_DEVICE_NAME>(&err);
+  // fpga_id_ = device.getInfo<CL_DEVICE_VENDOR_ID>(&err);
+}
+using BaseContext::SwitchToDevice;
+
+//CHECK: waitevent is done in the matmul kernel?
+inline void WaitEvent(const Event& ev) override {
+    ev.Wait(c10::DeviceType::FPGA, this);
+}
+
+inline void Record(Event* ev, const char* err_msg = nullptr) const override {
+  CAFFE_ENFORCE(ev, "Event must not be null.");
+  ev->Record(c10::DeviceType::FPGA, this, err_msg);
+}
+
+//CHECK if this works?
+void FinishDeviceComputation() override {}
+
+//CHECK? FROM CPUContext
+void CopyBytesSameDevice(size_t nbytes, const void* src, void* dst) override;
+
+void CopyBytesFromCPU(size_t nbytes, const void* src, void* dst) override {
+  CopyBytesSameDevice(nbytes, src, dst);
+}
+
+void CopyBytesToCPU(size_t nbytes, const void* src, void* dst) override {
+  CopyBytesSameDevice(nbytes, src, dst);
+}
+template <class SrcContext, class DstContext>
+inline void CopyBytes(size_t nbytes, const void* src, void* dst);
+
+template <typename T, class SrcContext, class DstContext>
+inline void Copy(size_t n, const T* src, T* dst) {
+  if (c10::guts::is_fundamental<T>::value) {
+    CopyBytes<SrcContext, DstContext>(
+        n * sizeof(T),
+        static_cast<const void*>(src),
+        static_cast<void*>(dst));
+  } else {
+    for (size_t i = 0; i < n; ++i) {
+      dst[i] = src[i];
+    }
+  }
+}
+
+template <class SrcContext, class DstContext>
+inline void
+CopyItems(const TypeMeta& meta, size_t n, const void* src, void* dst) {
+  if (meta.copy()) {
+    meta.copy()(src, dst, n);
+  } else {
+    CopyBytes<SrcContext, DstContext>(n * meta.itemsize(), src, dst);
+  }
+}
+
+//CHECK: this is from context.h
+// CPU streams are not implemented and are silently ignored by CPU ops,
+// return true to signal executor to schedule a CPU op
+static bool IsStreamFree(
+    const DeviceOption& /* option */,
+    int /* stream_id */) {
+  return true;
+}
+
+at::Device device() const override {
+  return at::Device(c10::DeviceType::FPGA, fpga_id_);
+}
+
+DeviceType device_type() const override {
+  return c10::DeviceType::FPGA;
+}
+
+static constexpr DeviceType GetDeviceType() {
+  return c10::DeviceType::FPGA;
+}
+
+protected:
+  int fpga_id_;
+  std::string deviceName;
+};//class FPGAContext
+
+} // namespace caffe2
+
+#endif // CAFFE2_CORE_CONTEXT_FPGA_H_

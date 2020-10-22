@@ -88,7 +88,13 @@ inline int64_t getTime() {
 #endif
 }
 
-enum class C10_API_ENUM ProfilerState {
+// Old GCC versions generate warnings incorrectly
+// see https://stackoverflow.com/questions/2463113/g-c0x-enum-class-compiler-warnings
+#ifndef _MSC_VER
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wattributes"
+#endif
+enum class TORCH_API ProfilerState {
     Disabled,
     CPU, // CPU-only profiling
     CUDA, // CPU + CUDA events
@@ -117,12 +123,15 @@ struct TORCH_API ProfilerConfig {
 
 };
 
-enum class C10_API_ENUM EventKind : uint16_t {
+enum class TORCH_API EventKind : uint16_t {
   Mark,
   PushRange,
   PopRange,
   MemoryAlloc,
 };
+#ifndef _MSC_VER
+#  pragma GCC diagnostic pop
+#endif
 
 struct TORCH_API Event final {
   Event(
@@ -270,17 +279,9 @@ struct TORCH_API Event final {
 
   void setCudaUs(int64_t cuda_us) {
     cuda_us_ = cuda_us;
-  }
+}
 
-  void setSequenceNr(int64_t sequence_nr) {
-    sequence_nr_ = sequence_nr;
-  }
-
-  int64_t sequence_nr() const {
-    return sequence_nr_;
-  }
-
- private:
+private:
   // signed to allow for negative intervals, initialized for safety.
   int64_t cpu_ns_ = 0;
   at::StringView name_;
@@ -295,7 +296,6 @@ struct TORCH_API Event final {
   int node_id_ = 0;
   bool is_remote_ = false;
   int64_t cuda_us_ = -1;
-  int64_t sequence_nr_ = -1;
 };
 
 // a linked-list of fixed sized vectors, to avoid

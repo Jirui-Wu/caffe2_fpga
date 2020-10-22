@@ -4,7 +4,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from caffe2.python import core
-from hypothesis import given, settings
+from hypothesis import given
 import caffe2.python.hypothesis_test_util as hu
 import caffe2.python.serialized_test.serialized_test_util as serial
 import hypothesis.strategies as st
@@ -13,14 +13,13 @@ import numpy as np
 
 def _string_lists(alphabet=None):
     return st.lists(
-        elements=st.text(alphabet=alphabet) if alphabet else st.text(),
+        elements=st.text(alphabet=alphabet, average_size=3),
         min_size=0,
         max_size=3)
 
 
 class TestStringOps(serial.SerializedTestCase):
     @given(strings=_string_lists())
-    @settings(deadline=1000)
     def test_string_prefix(self, strings):
         length = 3
         # although we are utf-8 encoding below to avoid python exceptions,
@@ -48,7 +47,6 @@ class TestStringOps(serial.SerializedTestCase):
             string_prefix_ref)
 
     @given(strings=_string_lists())
-    @settings(deadline=1000)
     def test_string_suffix(self, strings):
         length = 3
         strings = np.array(
@@ -71,8 +69,7 @@ class TestStringOps(serial.SerializedTestCase):
             [strings],
             string_suffix_ref)
 
-    @given(strings=st.text(alphabet=['a', 'b']))
-    @settings(deadline=1000)
+    @serial.given(strings=st.text(alphabet=['a', 'b'], average_size=3))
     def test_string_starts_with(self, strings):
         prefix = 'a'
         strings = np.array(
@@ -95,8 +92,7 @@ class TestStringOps(serial.SerializedTestCase):
             [strings],
             string_starts_with_ref)
 
-    @given(strings=st.text(alphabet=['a', 'b']))
-    @settings(deadline=1000)
+    @serial.given(strings=st.text(alphabet=['a', 'b'], average_size=3))
     def test_string_ends_with(self, strings):
         suffix = 'a'
         strings = np.array(

@@ -215,10 +215,8 @@ static std::string encodeRHS(const Node* n) {
       {aten::neg, "-${0}"},
       // simple binary
       {aten::atan2, "atan2(${0}, ${1})"},
-      {aten::min,
-       "isnan(${0}) ? ${0} : (isnan(${1}) ? ${1} : (${0} < ${1} ? ${0} : ${1}))"},
-      {aten::max,
-       "isnan(${0}) ? ${0} : (isnan(${1}) ? ${1} : (${0} < ${1} ? ${1} : ${0}))"},
+      {aten::min, {"fminf(${0}, ${1})", "fmin(${0}, ${1})"}},
+      {aten::max, {"fmaxf(${0}, ${1})", "fmax(${0}, ${1})"}},
 
       // binary with other
       // TODO: some of these ops will not get generated because

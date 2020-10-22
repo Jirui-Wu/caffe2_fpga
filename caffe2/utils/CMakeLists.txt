@@ -24,12 +24,7 @@ list(APPEND Caffe2_CPU_SRCS
   utils/threadpool/ThreadPool.cc
   utils/signal_handler.cc
   utils/smart_tensor_printer.cc
-  utils/string_utils.cc
-  utils/mm_fpga.cc
-  utils/utils.cpp
-  utils/xcl2.cpp
-  utils/data_proc.cpp
-  utils/AsyncProfiler.cpp)
+  utils/string_utils.cc)
 
 if(USE_PTHREADPOOL)
   list(APPEND Caffe2_CPU_SRCS

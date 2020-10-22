@@ -342,12 +342,6 @@ inline Tensor gelu(const Tensor& input) {
 
 // ============================================================================
 
-inline Tensor silu(const Tensor& input) {
-  return torch::silu(input);
-}
-
-// ============================================================================
-
 inline Tensor prelu(const Tensor& input, const Tensor& weight) {
   return torch::prelu(input, weight);
 }

@@ -27,7 +27,6 @@ namespace torch {
 namespace jit {
 
 struct Def;
-struct Property;
 struct ClassDef;
 struct SugaredValue;
 struct Resolver;
@@ -88,11 +87,9 @@ struct TORCH_API CompilationUnit {
   // Returns the list of Function's just defined.
   std::vector<Function*> define(
       const c10::optional<c10::QualifiedName>& prefix,
-      const std::vector<Property>& properties,
-      const std::vector<ResolverPtr>& propResolvers,
       const std::vector<Def>& definitions,
       const std::vector<ResolverPtr>&
-          defResolvers, /* determines how we handle free
+          resolvers, /* determines how we handle free
                      variables in each definition*/
       // if non-null, the first argument to each def, is bound to this value
       const Self* self,
@@ -260,16 +257,6 @@ struct TORCH_API CompilationUnit {
   std::unique_ptr<Function> define(
       const c10::optional<c10::QualifiedName>& prefix,
       const Def& def,
-      const ResolverPtr& resolver,
-      const Self* self,
-      const std::unordered_map<std::string, Function*>& function_table,
-      bool shouldMangle = false) const;
-
-  // Define a property on \p self.
-  struct PropertyPair;
-  PropertyPair define_property(
-      const c10::optional<c10::QualifiedName>& prefix,
-      const Property& prop,
       const ResolverPtr& resolver,
       const Self* self,
       const std::unordered_map<std::string, Function*>& function_table,

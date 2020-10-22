@@ -45,14 +45,6 @@ inline int64_t THPUtils_unpackLong(PyObject* obj) {
   return (int64_t)value;
 }
 
-inline uint64_t THPUtils_unpackUInt64(PyObject* obj) {
-  unsigned long long value = PyLong_AsUnsignedLongLong(obj);
-  if (PyErr_Occurred()) {
-    throw python_error();
-  }
-  return (uint64_t)value;
-}
-
 inline bool THPUtils_checkIndex(PyObject *obj) {
   if (PyBool_Check(obj)) {
     return false;

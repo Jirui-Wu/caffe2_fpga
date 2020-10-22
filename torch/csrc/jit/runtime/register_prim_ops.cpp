@@ -129,14 +129,6 @@ TORCH_LIBRARY_IMPL(aten, CatchAll, m) {
 
 RegisterOperators reg(
     {Operator(
-         "aten::str(t elem) -> str",
-         [](Stack* stack) {
-           std::stringstream ss;
-           ss << pop(stack);
-           push(stack, ss.str());
-         },
-         aliasAnalysisFromSchema()),
-     Operator(
          "aten::list(str t) -> str[]",
          [](Stack& stack) {
            auto str = pop(stack).toStringRef();
@@ -561,14 +553,6 @@ RegisterOperators reg(
            IValue x = pop(stack);
            IValue y = pop(stack);
            push(stack, x == y);
-         },
-         aliasAnalysisFromSchema()),
-     Operator(
-         "aten::ne.enum(AnyEnumType a, AnyEnumType b) -> bool",
-         [](Stack* stack) {
-           IValue x = pop(stack);
-           IValue y = pop(stack);
-           push(stack, x != y);
          },
          aliasAnalysisFromSchema()),
      Operator(
@@ -1148,7 +1132,6 @@ void dictConstructFromList(Stack* stack) {
 RegisterOperators reg_dict_ops({
     CREATE_DICT_OPS("str"),
     CREATE_DICT_OPS("int"),
-    CREATE_DICT_OPS("bool"),
     CREATE_DICT_OPS("float"),
     CREATE_DICT_OPS("Tensor"),
 });

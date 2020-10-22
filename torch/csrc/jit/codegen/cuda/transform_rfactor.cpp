@@ -25,6 +25,9 @@ class ReplayRFactor : public ReplayTransformations {
         "Transform traversal failed, dependencies not met.");
     // Grab the ID we're going to replay on
     auto mapped = (*it).second;
+    TORCH_INTERNAL_ASSERT(
+        s->factor()->isConst(),
+        "Transform traversal does not support splitting on non-const values.");
     // This ID should be a leaf ID (meaning it has no uses we generated)
     TORCH_INTERNAL_ASSERT(
         leaf_ids_.find(mapped) != leaf_ids_.end(),
@@ -52,18 +55,20 @@ class ReplayRFactor : public ReplayTransformations {
     // outer IterDomain
     IterDomain* ido = new IterDomain(
         new Int(0),
-        oe->as<Int>(),
-        mapped->getParallelType(),
-        rfactor_outer ? IterType::Reduction : IterType::Iteration,
-        true); // broadcast
+        static_cast<Int*>(oe),
+        mapped->parallel_method(),
+        rfactor_outer,
+        true,
+        mapped->isBroadcast());
 
     // inner IterDomain
     IterDomain* idi = new IterDomain(
         new Int(0),
         s->factor(),
-        mapped->getParallelType(),
-        rfactor_inner ? IterType::Reduction : IterType::Iteration,
-        true);
+        mapped->parallel_method(),
+        rfactor_inner,
+        true,
+        mapped->isBroadcast());
 
     // Generate the split node
     new Split(ido, idi, mapped, s->factor());
@@ -112,13 +117,13 @@ class ReplayRFactor : public ReplayTransformations {
 
     Val* merged_id_size =
         mul(id_outer_mapped->extent(), id_inner_mapped->extent());
-
     IterDomain* merged_id = new IterDomain(
         new Int(0),
-        merged_id_size->as<Int>(),
-        id_outer_mapped->getParallelType(),
-        rfactor_output ? IterType::Reduction : IterType::Iteration,
-        true);
+        static_cast<Int*>(merged_id_size),
+        id_outer_mapped->parallel_method(),
+        rfactor_output,
+        true,
+        id_outer_mapped->isBroadcast() && id_inner_mapped->isBroadcast());
 
     new Merge(merged_id, id_outer_mapped, id_inner_mapped);
 
@@ -224,10 +229,10 @@ TensorDomain* TransformRFactor::runReplay(
         TORCH_INTERNAL_ASSERT(
             val->getValType().value() == ValType::IterDomain,
             "Invalid value type found in rfactor axes inputs.");
-        return val->as<IterDomain>();
+        return static_cast<IterDomain*>(val);
       });
 
-  auto orig_td_root = orig_td->getRootDomain();
+  auto orig_td_root = orig_td->rootDomain();
 
   // Generate a new TensorDomain and set up map from one root to this one.
   std::vector<IterDomain*> new_root(orig_td_root.size(), nullptr);
@@ -241,17 +246,19 @@ TensorDomain* TransformRFactor::runReplay(
         new_root[i] = new IterDomain(
             id->start(),
             id->extent(),
-            id->getParallelType(),
-            IterType::Reduction,
-            true);
+            id->parallel_method(),
+            true,
+            true,
+            false);
         // If this is not an rfactor root, but a reduction root, it should be
         // turned into an iteration domain
       } else if (id->isReduction()) {
         new_root[i] = new IterDomain(
             id->start(),
             id->extent(),
-            id->getParallelType(),
-            IterType::Iteration,
+            id->parallel_method(),
+            false,
+            false,
             false);
       } else {
         new_root[i] = id->clone();
@@ -288,11 +295,7 @@ TensorDomain* TransformRFactor::runReplay(
     if (dom->isRFactorProduct())
       rfactor_root.push_back(dom);
 
-  return new TensorDomain(
-      new_root,
-      rfactor_root,
-      new_domain,
-      std::vector<bool>(new_root.size(), true));
+  return new TensorDomain(new_root, rfactor_root, new_domain);
 }
 
 // We want to take any axes marked in axes and remove them from the TensorDomain
@@ -350,14 +353,14 @@ TensorDomain* TransformRFactor::runReplay2(
         TORCH_INTERNAL_ASSERT(
             val->getValType().value() == ValType::IterDomain,
             "Invalid value type found in rfactor axes inputs.");
-        return val->as<IterDomain>();
+        return static_cast<IterDomain*>(val);
       });
 
   // Replay all other root domains that are iter domains, as these will match in
   // the domain we're creating
   std::vector<IterDomain*> new_root;
   std::unordered_map<IterDomain*, IterDomain*> replay_root_map;
-  for (auto id : orig_td->getRootDomain()) {
+  for (auto id : orig_td->rootDomain()) {
     if (rfactor_root_axes.find(id) == rfactor_root_axes.end()) {
       new_root.push_back(id->clone());
       replay_root_map[id] = new_root.back();
@@ -384,8 +387,7 @@ TensorDomain* TransformRFactor::runReplay2(
     }
   }
 
-  return new TensorDomain(
-      new_root, new_domain, std::vector<bool>(new_root.size(), true));
+  return new TensorDomain(new_root, new_domain);
 }
 
 } // namespace fuser

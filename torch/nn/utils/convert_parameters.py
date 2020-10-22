@@ -1,8 +1,7 @@
 import torch
-from typing import Iterable, Optional
 
 
-def parameters_to_vector(parameters: Iterable[torch.Tensor]) -> torch.Tensor:
+def parameters_to_vector(parameters):
     r"""Convert parameters to one vector
 
     Arguments:
@@ -24,7 +23,7 @@ def parameters_to_vector(parameters: Iterable[torch.Tensor]) -> torch.Tensor:
     return torch.cat(vec)
 
 
-def vector_to_parameters(vec: torch.Tensor, parameters: Iterable[torch.Tensor]) -> None:
+def vector_to_parameters(vec, parameters):
     r"""Convert one vector to the parameters
 
     Arguments:
@@ -54,7 +53,7 @@ def vector_to_parameters(vec: torch.Tensor, parameters: Iterable[torch.Tensor]) 
         pointer += num_param
 
 
-def _check_param_device(param: torch.Tensor, old_param_device: Optional[int]) -> int:
+def _check_param_device(param, old_param_device):
     r"""This helper function is to check if the parameters are located
     in the same device. Currently, the conversion between model parameters
     and single vector form is not supported for multiple allocations,

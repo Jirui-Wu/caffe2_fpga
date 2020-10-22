@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 
 from caffe2.python import recurrent, workspace
 from caffe2.python.model_helper import ModelHelper
-from hypothesis import given, settings
+from hypothesis import given
 import caffe2.python.hypothesis_test_util as hu
 import caffe2.python.serialized_test.serialized_test_util as serial
 import hypothesis.strategies as st
@@ -18,7 +18,6 @@ class RecurrentNetworkTest(serial.SerializedTestCase):
     @given(T=st.integers(1, 4),
            n=st.integers(1, 5),
            d=st.integers(1, 5))
-    @settings(deadline=10000)
     def test_sum_mul(self, T, n, d):
         model = ModelHelper(name='external')
 
@@ -35,10 +34,9 @@ class RecurrentNetworkTest(serial.SerializedTestCase):
         self.simple_rnn(T, n, d, model, step, input_t, output_t, output_t_prev,
                         input_blob, initial_input_blob)
 
-    @given(T=st.integers(1, 4),
+    @serial.given(T=st.integers(1, 4),
            n=st.integers(1, 5),
            d=st.integers(1, 5))
-    @settings(deadline=10000)
     def test_mul(self, T, n, d):
         model = ModelHelper(name='external')
 

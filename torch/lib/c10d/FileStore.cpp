@@ -144,7 +144,7 @@ class File {
     while (count > 0) {
       auto rv = syscall(std::bind(::write, fd_, buf, count));
       SYSASSERT(rv, "write");
-      buf = (uint8_t*)buf + rv;
+      buf = (uint8_t*)buf + count;
       count -= rv;
     }
   }
@@ -153,7 +153,7 @@ class File {
     while (count > 0) {
       auto rv = syscall(std::bind(::read, fd_, buf, count));
       SYSASSERT(rv, "read");
-      buf = (uint8_t*)buf + rv;
+      buf = (uint8_t*)buf + count;
       count -= rv;
     }
   }

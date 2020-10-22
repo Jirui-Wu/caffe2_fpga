@@ -119,7 +119,8 @@ class TORCH_API DistEngine {
   //       2. properly setup the thread local ready queue to enable reentrant
   //       backwards
   void execute_graph_task_until_ready_queue_empty(
-      torch::autograd::NodeTask&& node_task,
+      const std::shared_ptr<torch::autograd::GraphTask>& graph_task,
+      std::shared_ptr<torch::autograd::Node> root_to_execute,
       bool incrementOutstandingTasks = true);
 
   // Run the local autograd engine using the provided graphTask and graphRoot
@@ -133,10 +134,6 @@ class TORCH_API DistEngine {
 
   // Run after the backward pass is done to appropriately cleanup structures.
   void cleanupBackwardPass(const ContextPtr& autogradContext);
-
-  // Global thread to execute CPU continuations.
-  void globalCpuThread(
-      const std::shared_ptr<torch::autograd::ReadyQueue>& ready_queue);
 
   // Set of autograd context_ids, which we have already initialized for
   // distributed autograd on this node (e.g.: already computed dependencies)

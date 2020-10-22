@@ -13,5 +13,3 @@
 #include <torch/nn/options/rnn.h>
 #include <torch/nn/options/pixelshuffle.h>
 #include <torch/nn/options/upsampling.h>
-#include <torch/nn/options/transformerlayer.h>
-#include <torch/nn/options/transformercoder.h>

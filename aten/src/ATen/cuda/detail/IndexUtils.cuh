@@ -2,14 +2,14 @@
 
 #include <ATen/ATen.h>
 #include <ATen/cuda/detail/TensorInfo.cuh>
-#include <ATen/native/IndexingUtils.h>
+#include <limits>
 
 namespace at {
 namespace cuda {
 namespace detail {
 
 TORCH_CUDA_API bool maybeOverlappingIndices(const at::Tensor& t);
-using at::native::canUse32BitIndexMath;
+TORCH_CUDA_API bool canUse32BitIndexMath(const at::Tensor &t, int64_t max_elem=std::numeric_limits<int32_t>::max());
 
 template <typename scalar, typename IndexType>
 TensorInfo<scalar, IndexType>

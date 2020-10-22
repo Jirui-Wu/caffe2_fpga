@@ -1,0 +1,198 @@
+// Implements the math functions for FPGA.
+
+//Common for CPU&GPU
+#include "caffe2/utils/math.h"
+#include <cstring>
+#include <limits>
+#include <numeric>
+#include <vector>
+#include "caffe2/utils/fixed_divisor.h"
+
+
+#include "caffe2/fpga/xcl2.hpp"
+#include "caffe2/fpga/mm_fpga.h"
+//CHECK: FPGA CONTEXT
+//#include "caffe2/core/context_gpu.h"
+//#include "caffe2/core/context.h"
+
+//below are needed for CPU, we need to rely on it to do GEMM and other things
+//#include "caffe2/utils/math.h"
+#include <algorithm>
+#include <array>
+#include <atomic>
+#include <chrono>
+#include <cmath>
+#include <cstdlib>
+//#include <cstring>
+#include <functional>
+//#include <limits>
+//#include <numeric>
+#include <random>
+#include <tuple>
+#include <unordered_set>
+//#include <vector>
+#include "caffe2/core/context.h"
+#include "caffe2/utils/cpu_neon.h"
+#include "caffe2/utils/eigen_utils.h"
+//#include "caffe2/utils/fixed_divisor.h"
+#include "Eigen/Core"
+#include "Eigen/Dense"
+#ifdef CAFFE2_USE_MKL
+#include <mkl.h>
+#endif // CAFFE2_USE_MKL
+#ifdef CAFFE2_USE_HPTT
+#include <hptt.h>
+#endif // CAFFE2_USE_HPTT
+#if defined(_MSC_VER)
+#include <process.h>
+#endif
+
+//below are needed for FPGA kernel
+#include <fstream>
+#include <iostream>
+//from mm_utils CAFFE
+//note bool is_a_ge_zero_and_a_lt_b(int a, int b); is implemetned
+//in caffe2/utils/math/utils.h as
+//MATH_UTILS_DECL bool IsAGeZeroAndALtB(const int a, const int b)
+//#include <vector>
+//#include "xcl2.hpp"
+//#include "math.h"
+//from mm_fpga CAFFE
+//#include "caffe/caffe.hpp"
+//#include "caffe/fpga/mm_utils.hpp"
+//#include "xcl2.hpp"
+//#include "math.h"
+//important file for profiling
+#include "caffe2/fpga/AsyncProfiler.hpp"
+//#include <vector>
+
+//Timer
+//from https://github.com/pytorch/pytorch/blob/master/caffe2/core/timer.h
+#include "caffe2/core/timer.h"
+
+namespace caffe2 {
+namespace math {
+//other parts will go to CPU, only implement the GEMM part
+//TODO: MACRO CAFFE2_FPGA_EXPORT
+
+
+//TODO: GEMM kernel template have no FPGA_TIME as profiling output
+template <>
+CAFFE2_FPGA_EXPORT void Gemm<float, FPGAContext>(
+    const CBLAS_TRANSPOSE trans_A,
+    const CBLAS_TRANSPOSE trans_B,
+    const int M,
+    const int N,
+    const int K,
+    const float alpha,
+    const float* A,
+    const float* B,
+    const float beta,
+    float* C,
+    FPGAContext* context,
+    TensorProto::DataType math_type) {
+      //profiling
+     //  #ifdef PROFILING
+     //  std::ofstream profilingLog;
+     //  //TODO: change a path
+     //  profilingLog.open("~/home/log.csv", ios::app);
+     //  profilingLog << M << "," << N << "," << K << ",";
+     //
+     //  //from line 276 and 277 of math_cpu.cc, format slightly different, now min is 1
+     //  // int lda = (trans_A == CblasNoTrans) ? K : M;
+     //  // int ldb = (trans_B == CblasNoTrans) ? N : K;
+     // const int lda = std::max((trans_A == CblasNoTrans) ? K : M, 1);
+     // const int ldb = std::max((trans_B == CblasNoTrans) ? N : K, 1);
+     //
+     // caffe2::Timer cpu;
+     // double cpu_time = 0.0;
+     // cpu.Start();
+     //
+     // cblas_sgemm(CblasRowMajor, trans_A, trans_B, M, N, K, alpha, A, lda, B, ldb, beta, C, N);
+     // cpu_time += cpu.MicroSeconds();
+     // profilingLog << cpu_time / 1000.0 << ",";
+     // //record results from cblas_sgemm in cBlas
+     // float cBlas[N*M];
+     // for (int i=0; i<M; i++)
+     // {
+     //     for (int j=0; j<N; j++)
+     //     {
+     //         cBlas[i*N + j] = C[i*N+j];
+     //     }
+     // }
+     // #endif
+
+     double fpga_times[3];
+
+     //CHECK: Is this better to be put before the kernel in mm_fpga.cc?
+     // std::cout << "Setting up interfaces..." << std::endl;
+     // std::vector<cl::Device> devices = xcl::get_xil_devices();
+     // cl::Device device = devices[0];
+     //
+     // cl_int err;
+     // OCL_CHECK(err, cl::Context context(device, NULL, NULL, NULL, &err));
+     // OCL_CHECK(err, std::string deviceName = device.getInfo<CL_DEVICE_NAME>(&err));
+     // //TODO:binary file
+     // unsigned fileBufSize;
+     // char* fileBuf = xcl::read_binary_file("matmul.xclbin", fileBufSize);
+     // cl::Program::Binaries bins{{fileBuf,fileBufSize}};
+     // devices.resize(1);
+     // OCL_CHECK(err, cl::Program program(context, devices, bins, NULL, &err));
+     // OCL_CHECK(err, cl::Kernel kernel(program, "matmul", &err));
+
+     //passing by reference will not improve efficiency as A,B and C are arrays in form of ptrs
+     //trans_A, trans_B, M,K,N, alpha and beta are constants
+     Kernel(trans_A - 111, A, trans_B - 111, B, C, M, K, K, N, alpha, beta, fpga_times);
+
+     // #ifdef PROFILING
+     // #ifdef PROFILING_TIME
+     // double total_time = 0.0;
+     // for (unsigned i=0; i<3; ++i)
+     // {
+     //     total_time += fpga_times[i];
+     // }
+     // profilingLog << fpga_times[0] << "," << fpga_times[1] << "," << fpga_times[2] << "," << total_time << ",";
+     // #endif
+     // //mean square error
+     // double mse = 0;
+     // for (int i=0; i<M; i++)
+     // {
+     //     for (int j=0; j<N; j++)
+     //     {
+     //       mse += std::pow(std::fabs(cBlas[i*N+j] - C[i*N+j]) ,2);
+     //     }
+     // }
+     // mse /= (N*M);
+     //
+     // profilingLog << mse << std::endl;
+     // profilingLog.close();
+     // #endif
+}
+
+template <>
+CAFFE2_FPGA_EXPORT void GemmBatched<float, FPGAContext>(
+    const CBLAS_TRANSPOSE trans_A,
+    const CBLAS_TRANSPOSE trans_B,
+    const int batch_size,
+    const int M,
+    const int N,
+    const int K,
+    const float alpha,
+    const float** A,
+    const float** B,
+    const float beta,
+    float** C,
+    FPGAContext* context,
+    TensorProto::DataType math_type) {
+      for (int i = 0; i < batch_size; ++i)
+      {
+        math::Gemm<float, FPGAContext>(
+        trans_A, trans_B, M, N, K, alpha, A[i], B[i], beta, C[i], context);
+      }
+      //end of GEMMBATCHED
+    }
+
+
+
+}//namespace math
+}//namespace caffe2

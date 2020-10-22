@@ -116,6 +116,10 @@ void IRVisitor::visit(const AtomicAdd* v) {
 }
 
 void IRVisitor::visit(const Block* v) {
+  for (const auto& pair : v->varBindings()) {
+    pair.first->accept(this);
+    pair.second->accept(this);
+  }
   for (Stmt* s : *v) {
     s->accept(this);
   }
@@ -166,11 +170,6 @@ void IRVisitor::visit(const Allocate* v) {
 
 void IRVisitor::visit(const Free* v) {
   v->buffer_var()->accept(this);
-}
-
-void IRVisitor::visit(const Let* v) {
-  v->var()->accept(this);
-  v->value()->accept(this);
 }
 
 void IRVisitor::visit(const Cond* v) {

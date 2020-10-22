@@ -57,7 +57,6 @@ torch::nn::RReLU|Yes|No
 torch::nn::SELU|Yes|No
 torch::nn::CELU|Yes|No
 torch::nn::GELU|Yes|No
-torch::nn::SiLU|Yes|No
 torch::nn::Sigmoid|Yes|No
 torch::nn::Softplus|Yes|No
 torch::nn::Softshrink|Yes|No
@@ -184,7 +183,6 @@ F::prelu|Yes|No
 F::rrelu|Yes|No
 F::glu|Yes|No
 F::gelu|Yes|No
-F::silu|Yes|No
 F::logsigmoid|Yes|No
 F::hardshrink|Yes|No
 F::tanhshrink|Yes|No
